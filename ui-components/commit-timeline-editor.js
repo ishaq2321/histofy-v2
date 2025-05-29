@@ -306,12 +306,30 @@ class CommitTimelineEditor {
       timestamp: new Date().toISOString()
     };
 
-    if (window.histofyStorage) {
-      await window.histofyStorage.addPendingChange(moveOperation);
+    try {
+      if (window.histofyStorage) {
+        const result = await window.histofyStorage.addPendingChange(moveOperation);
+        
+        if (result === null) {
+          // Duplicate detected
+          this.showNotification(
+            `⚠️ These ${commitHashes.length} commits are already queued to move to ${newDate}!`, 
+            'warning'
+          );
+        } else {
+          // Successfully added
+          this.showNotification(
+            `✅ Queued ${commitHashes.length} commits for move to ${newDate}`, 
+            'success'
+          );
+        }
+      }
+      
+      this.clearCommitSelection();
+    } catch (error) {
+      console.error('Histofy: Failed to queue move operation:', error);
+      this.showNotification('❌ Failed to queue move operation', 'error');
     }
-
-    this.showNotification(`Queued ${commitHashes.length} commits for move to ${newDate}`, 'success');
-    this.clearCommitSelection();
   }
 
   updateSelectedCommitsCount() {

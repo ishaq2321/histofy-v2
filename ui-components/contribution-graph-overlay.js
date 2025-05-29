@@ -635,6 +635,54 @@ class ContributionGraphOverlay {
     }
   }
 
+  async storeCurrentChanges() {
+    if (this.selectedDates.size === 0) {
+      this.showNotification('No dates selected to store!', 'warning');
+      return;
+    }
+
+    const selectedDatesArray = Array.from(this.selectedDates);
+    const contributionsData = {};
+    
+    // Collect contribution data for each selected date
+    selectedDatesArray.forEach(date => {
+      const contribution = this.selectedContributions.get(date);
+      if (contribution) {
+        contributionsData[date] = contribution;
+      }
+    });
+
+    const changeData = {
+      type: 'date_selection',
+      dates: selectedDatesArray,
+      contributions: contributionsData,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      if (window.histofyStorage) {
+        const result = await window.histofyStorage.addPendingChange(changeData);
+        
+        if (result === null) {
+          // Duplicate detected
+          this.showNotification(
+            `⚠️ These ${selectedDatesArray.length} dates are already stored! No duplicate added.`, 
+            'warning'
+          );
+        } else {
+          // Successfully added
+          this.showNotification(
+            `✅ Stored ${selectedDatesArray.length} selected dates for deployment!`, 
+            'success'
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to store changes:', error);
+      this.showNotification('❌ Failed to store changes', 'error');
+    }
+  }
+
   async addPendingChange(change) {
     if (window.histofyStorage) {
       await window.histofyStorage.addPendingChange(change);

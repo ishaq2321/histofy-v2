@@ -396,12 +396,29 @@ class ProfileInjector {
       timestamp: new Date().toISOString()
     };
 
-    if (window.histofyStorage) {
-      await window.histofyStorage.addPendingChange(patternData);
+    try {
+      if (window.histofyStorage) {
+        const result = await window.histofyStorage.addPendingChange(patternData);
+        
+        if (result === null) {
+          // Duplicate detected
+          this.showNotification(
+            `⚠️ ${commits}/${intensity} pattern already selected!`, 
+            'warning'
+          );
+        } else {
+          // Successfully added
+          this.showNotification(
+            `✅ Selected ${commits}/${intensity} pattern`, 
+            'success'
+          );
+          this.updateStats();
+        }
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to select pattern:', error);
+      this.showNotification('❌ Failed to select pattern', 'error');
     }
-
-    this.showNotification(`Selected ${commits}/${intensity} pattern`, 'success');
-    this.updateStats();
   }
 
   async updateStats() {

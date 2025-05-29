@@ -89,6 +89,12 @@ class LocalStorageManager {
       change.id = change.id || this.generateId();
       change.timestamp = change.timestamp || new Date().toISOString();
       
+      // Check for duplicates before adding
+      if (this.isDuplicateChange(change, data.pendingChanges)) {
+        console.log('Histofy: Duplicate change detected, not adding:', change.type);
+        return null; // Return null to indicate no change was added
+      }
+      
       data.pendingChanges.push(change);
       const saved = await this.saveData(data);
       
@@ -104,52 +110,139 @@ class LocalStorageManager {
     }
   }
 
-  async getPendingChanges() {
-    try {
-      const data = await this.getData();
-      return data.pendingChanges || [];
-    } catch (error) {
-      if (error.message.includes('Extension context invalidated')) {
-        console.warn('Histofy: Extension context invalidated, returning empty pending changes');
-        return [];
+  // Check if a change is duplicate of existing pending changes
+  isDuplicateChange(newChange, existingChanges) {
+    return existingChanges.some(existingChange => {
+      // Same type is required for comparison
+      if (newChange.type !== existingChange.type) {
+        return false;
       }
-      console.error('Histofy: Failed to get pending changes:', error);
-      return [];
-    }
+
+      switch (newChange.type) {
+        case 'date_selection':
+          return this.isDuplicateDateSelection(newChange, existingChange);
+        
+        case 'move_commits':
+          return this.isDuplicateMoveCommits(newChange, existingChange);
+        
+        case 'move_commits_timeline':
+          return this.isDuplicateTimelineMove(newChange, existingChange);
+        
+        case 'generate_commits':
+          return this.isDuplicateGenerateCommits(newChange, existingChange);
+        
+        case 'intensity_pattern':
+          return this.isDuplicateIntensityPattern(newChange, existingChange);
+        
+        default:
+          // For unknown types, compare basic properties
+          return this.isDuplicateBasic(newChange, existingChange);
+      }
+    });
   }
 
-  async removePendingChange(changeId) {
-    try {
-      const data = await this.getData();
-      const index = data.pendingChanges.findIndex(change => change.id === changeId);
-      
-      if (index !== -1) {
-        const removed = data.pendingChanges.splice(index, 1)[0];
-        await this.saveData(data);
-        console.log('Histofy: Removed pending change:', changeId);
-        return removed;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Histofy: Failed to remove pending change:', error);
-      throw error;
+  // Check if date selections are duplicate
+  isDuplicateDateSelection(newChange, existingChange) {
+    // Compare date arrays (order independent)
+    const newDates = (newChange.dates || []).sort();
+    const existingDates = (existingChange.dates || []).sort();
+    
+    if (newDates.length !== existingDates.length) {
+      return false;
     }
+    
+    // Check if all dates match
+    const datesMatch = newDates.every((date, index) => date === existingDates[index]);
+    
+    // Also compare contribution levels for each date
+    const contributionsMatch = this.areContributionsEqual(
+      newChange.contributions || {}, 
+      existingChange.contributions || {}
+    );
+    
+    return datesMatch && contributionsMatch;
   }
 
-  async clearPendingChanges() {
-    try {
-      const data = await this.getData();
-      const count = data.pendingChanges.length;
-      data.pendingChanges = [];
-      await this.saveData(data);
-      
-      console.log(`Histofy: Cleared ${count} pending changes`);
-      return count;
-    } catch (error) {
-      console.error('Histofy: Failed to clear pending changes:', error);
-      throw error;
+  // Check if move commits operations are duplicate
+  isDuplicateMoveCommits(newChange, existingChange) {
+    const newSourceDates = (newChange.sourceDates || []).sort();
+    const existingSourceDates = (existingChange.sourceDates || []).sort();
+    
+    const sourceDatesMatch = newSourceDates.length === existingSourceDates.length &&
+      newSourceDates.every((date, index) => date === existingSourceDates[index]);
+    
+    const targetDateMatch = newChange.targetDate === existingChange.targetDate;
+    
+    return sourceDatesMatch && targetDateMatch;
+  }
+
+  // Check if timeline move operations are duplicate
+  isDuplicateTimelineMove(newChange, existingChange) {
+    const newCommits = (newChange.commits || []).sort();
+    const existingCommits = (existingChange.commits || []).sort();
+    
+    const commitsMatch = newCommits.length === existingCommits.length &&
+      newCommits.every((commit, index) => commit === existingCommits[index]);
+    
+    const targetDateMatch = newChange.targetDate === existingChange.targetDate;
+    const repoMatch = newChange.repository === existingChange.repository;
+    
+    return commitsMatch && targetDateMatch && repoMatch;
+  }
+
+  // Check if generate commits operations are duplicate
+  isDuplicateGenerateCommits(newChange, existingChange) {
+    return newChange.startDate === existingChange.startDate &&
+           newChange.endDate === existingChange.endDate &&
+           newChange.pattern === existingChange.pattern &&
+           newChange.frequency === existingChange.frequency &&
+           newChange.messageTemplate === existingChange.messageTemplate;
+  }
+
+  // Check if intensity pattern operations are duplicate
+  isDuplicateIntensityPattern(newChange, existingChange) {
+    return newChange.commits === existingChange.commits &&
+           newChange.intensity === existingChange.intensity;
+  }
+
+  // Basic duplicate check for unknown types
+  isDuplicateBasic(newChange, existingChange) {
+    // Compare JSON representation (excluding id and timestamp)
+    const newCopy = { ...newChange };
+    const existingCopy = { ...existingChange };
+    
+    delete newCopy.id;
+    delete newCopy.timestamp;
+    delete existingCopy.id;
+    delete existingCopy.timestamp;
+    
+    return JSON.stringify(newCopy) === JSON.stringify(existingCopy);
+  }
+
+  // Helper to compare contributions objects
+  areContributionsEqual(newContributions, existingContributions) {
+    const newKeys = Object.keys(newContributions).sort();
+    const existingKeys = Object.keys(existingContributions).sort();
+    
+    // Check if same number of dates have contributions
+    if (newKeys.length !== existingKeys.length) {
+      return false;
     }
+    
+    // Check if all keys match
+    if (!newKeys.every((key, index) => key === existingKeys[index])) {
+      return false;
+    }
+    
+    // Check if contribution levels match for each date
+    return newKeys.every(date => {
+      const newContrib = newContributions[date];
+      const existingContrib = existingContributions[date];
+      
+      return newContrib.level === existingContrib.level &&
+             newContrib.name === existingContrib.name &&
+             newContrib.commits === existingContrib.commits;
+    });
   }
 
   // User settings management

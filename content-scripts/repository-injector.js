@@ -393,12 +393,29 @@ class RepositoryInjector {
       timestamp: new Date().toISOString()
     };
 
-    if (window.histofyStorage) {
-      await window.histofyStorage.addPendingChange(generationData);
+    try {
+      if (window.histofyStorage) {
+        const result = await window.histofyStorage.addPendingChange(generationData);
+        
+        if (result === null) {
+          // Duplicate detected
+          this.showNotification(
+            '⚠️ This exact commit generation is already queued!', 
+            'warning'
+          );
+        } else {
+          // Successfully added
+          this.showNotification(
+            '✅ Commit generation queued for deployment!', 
+            'success'
+          );
+          this.updateRepositoryStats();
+        }
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to queue generation:', error);
+      this.showNotification('❌ Failed to queue generation', 'error');
     }
-
-    this.showNotification('Commit generation queued for deployment!', 'success');
-    this.updateRepositoryStats();
   }
 
   getGeneratorFormData(panel) {
