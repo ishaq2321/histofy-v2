@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Histofy - GitHub History Modifier",
+  "version": "1.0.0",
+  "description": "Manipulate GitHub commit history and contribution graphs with ease",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://github.com/*",
+    "https://api.github.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": [
+        "storage/local-storage-manager.js",
+        "api/github-api.js",
+        "api/git-operations.js",
+        "content-scripts/github-detector.js",
+        "ui-components/contribution-graph-overlay.js",
+        "ui-components/commit-timeline-editor.js",
+        "ui-components/deploy-button.js",
+        "content-scripts/profile-injector.js",
+        "content-scripts/repository-injector.js"
+      ],
+      "css": ["styles/histofy-ui.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Histofy",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["ui-components/*", "styles/*", "api/*"],
+      "matches": ["https://github.com/*"]
+    }
+  ]
+}

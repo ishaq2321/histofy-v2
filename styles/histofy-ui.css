@@ -1,0 +1,818 @@
+/* Histofy UI Styles */
+
+/* Global Variables */
+:root {
+  --histofy-primary: #0969da;
+  --histofy-secondary: #656d76;
+  --histofy-success: #1a7f37;
+  --histofy-warning: #d1242f;
+  --histofy-danger: #cf222e;
+  --histofy-bg: #ffffff;
+  --histofy-bg-secondary: #f6f8fa;
+  --histofy-border: #d0d7de;
+  --histofy-text: #1f2328;
+  --histofy-text-secondary: #656d76;
+  --histofy-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --histofy-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --histofy-radius: 6px;
+  --histofy-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --histofy-bg: #0d1117;
+    --histofy-bg-secondary: #161b22;
+    --histofy-border: #30363d;
+    --histofy-text: #f0f6fc;
+    --histofy-text-secondary: #8b949e;
+  }
+}
+
+/* Base Components */
+.histofy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--histofy-font);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  background: var(--histofy-bg);
+  color: var(--histofy-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.histofy-btn:hover {
+  background: var(--histofy-bg-secondary);
+  border-color: var(--histofy-primary);
+  transform: translateY(-1px);
+}
+
+.histofy-btn-primary {
+  background: var(--histofy-primary);
+  color: white;
+  border-color: var(--histofy-primary);
+}
+
+.histofy-btn-primary:hover {
+  background: #0860ca;
+  border-color: #0860ca;
+}
+
+.histofy-btn-secondary {
+  background: var(--histofy-bg-secondary);
+  color: var(--histofy-text);
+}
+
+.histofy-btn-warning {
+  background: var(--histofy-warning);
+  color: white;
+  border-color: var(--histofy-warning);
+}
+
+.histofy-btn-danger {
+  background: var(--histofy-danger);
+  color: white;
+  border-color: var(--histofy-danger);
+}
+
+.histofy-btn-active {
+  background: var(--histofy-primary);
+  color: white;
+  border-color: var(--histofy-primary);
+}
+
+.histofy-input {
+  padding: 8px 12px;
+  font-family: var(--histofy-font);
+  font-size: 14px;
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  background: var(--histofy-bg);
+  color: var(--histofy-text);
+  transition: border-color 0.2s ease;
+}
+
+.histofy-input:focus {
+  outline: none;
+  border-color: var(--histofy-primary);
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+/* Notifications */
+.histofy-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  font-family: var(--histofy-font);
+  font-size: 14px;
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow-lg);
+  z-index: 10000;
+  max-width: 400px;
+  animation: histofy-slide-in 0.3s ease-out;
+}
+
+.histofy-notification-info {
+  background: var(--histofy-primary);
+  color: white;
+}
+
+.histofy-notification-success {
+  background: var(--histofy-success);
+  color: white;
+}
+
+.histofy-notification-warning {
+  background: var(--histofy-warning);
+  color: white;
+}
+
+.histofy-notification-error {
+  background: var(--histofy-danger);
+  color: white;
+}
+
+@keyframes histofy-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Overlay Components */
+.histofy-overlay {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--histofy-bg-secondary);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-overlay-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.histofy-selected-count {
+  font-family: var(--histofy-font);
+  font-size: 14px;
+  color: var(--histofy-text-secondary);
+  font-weight: 500;
+}
+
+/* Deploy Button */
+.histofy-deploy-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  font-family: var(--histofy-font);
+}
+
+.histofy-deploy-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--histofy-primary);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--histofy-shadow-lg);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.histofy-deploy-btn:hover {
+  background: #0860ca;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+}
+
+.histofy-pending-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--histofy-danger);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 50px;
+  min-width: 20px;
+  text-align: center;
+  display: none;
+}
+
+.histofy-deploy-panel {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 400px;
+  max-height: 600px;
+  background: var(--histofy-bg);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow-lg);
+  overflow: hidden;
+}
+
+.histofy-deploy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--histofy-bg-secondary);
+  border-bottom: 1px solid var(--histofy-border);
+}
+
+.histofy-deploy-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--histofy-text);
+}
+
+.histofy-close-panel {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--histofy-text-secondary);
+  padding: 4px;
+}
+
+.histofy-deploy-content {
+  padding: 16px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.histofy-auth-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--histofy-border);
+}
+
+.histofy-auth-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.histofy-changes-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.histofy-change-item {
+  padding: 12px;
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  margin-bottom: 8px;
+  background: var(--histofy-bg-secondary);
+}
+
+.histofy-change-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.histofy-change-type {
+  font-weight: 600;
+  color: var(--histofy-text);
+}
+
+.histofy-change-time {
+  font-size: 12px;
+  color: var(--histofy-text-secondary);
+}
+
+.histofy-remove-change {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--histofy-text-secondary);
+  padding: 2px;
+}
+
+.histofy-deploy-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.histofy-no-changes {
+  text-align: center;
+  padding: 20px;
+  color: var(--histofy-text-secondary);
+}
+
+/* Profile Controls */
+.histofy-profile-header {
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--histofy-bg-secondary);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-profile-title h2 {
+  margin: 0 0 8px 0;
+  color: var(--histofy-text);
+  font-size: 20px;
+}
+
+.histofy-profile-title p {
+  margin: 0;
+  color: var(--histofy-text-secondary);
+  font-size: 14px;
+}
+
+.histofy-profile-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.histofy-stat {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.histofy-stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--histofy-primary);
+}
+
+.histofy-stat-label {
+  font-size: 12px;
+  color: var(--histofy-text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.histofy-quick-actions {
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--histofy-bg);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-actions-section h3,
+.histofy-intensity-section h3 {
+  margin: 0 0 16px 0;
+  color: var(--histofy-text);
+  font-size: 16px;
+}
+
+.histofy-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.histofy-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--histofy-bg-secondary);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.histofy-action-card:hover {
+  background: var(--histofy-bg);
+  border-color: var(--histofy-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-action-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.histofy-action-content h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: var(--histofy-text);
+}
+
+.histofy-action-content p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--histofy-text-secondary);
+  line-height: 1.4;
+}
+
+.histofy-intensity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.histofy-intensity-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--histofy-bg-secondary);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  color: var(--histofy-text);
+}
+
+.histofy-intensity-btn:hover {
+  background: var(--histofy-bg);
+  border-color: var(--histofy-primary);
+}
+
+.histofy-intensity-preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+.histofy-preview-low-low { background: #ebedf0; }
+.histofy-preview-low-medium { background: #9be9a8; }
+.histofy-preview-low-high { background: #40c463; }
+.histofy-preview-medium-low { background: #ebedf0; }
+.histofy-preview-medium-medium { background: #9be9a8; }
+.histofy-preview-medium-high { background: #40c463; }
+.histofy-preview-high-low { background: #30a14e; }
+.histofy-preview-high-medium { background: #216e39; }
+.histofy-preview-high-high { background: #216e39; }
+
+.histofy-intensity-info {
+  padding: 12px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+  font-size: 12px;
+  color: var(--histofy-text-secondary);
+}
+
+/* Repository Panel */
+.histofy-repository-panel {
+  margin: 16px 0;
+  background: var(--histofy-bg);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow);
+  overflow: hidden;
+}
+
+.histofy-repo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--histofy-bg-secondary);
+  border-bottom: 1px solid var(--histofy-border);
+}
+
+.histofy-repo-title h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  color: var(--histofy-text);
+}
+
+.histofy-repo-info {
+  font-size: 12px;
+  color: var(--histofy-text-secondary);
+  font-family: monospace;
+}
+
+.histofy-repo-content {
+  padding: 20px;
+}
+
+.histofy-repo-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--histofy-border);
+  margin-bottom: 20px;
+}
+
+.histofy-tab {
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--histofy-text-secondary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.histofy-tab:hover {
+  color: var(--histofy-text);
+}
+
+.histofy-tab-active {
+  color: var(--histofy-primary);
+  border-bottom-color: var(--histofy-primary);
+}
+
+.histofy-tab-content {
+  display: none;
+}
+
+.histofy-tab-content.histofy-tab-active {
+  display: block;
+}
+
+.histofy-commits-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.histofy-commit-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.histofy-stat-card {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  padding: 12px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+  min-width: 80px;
+}
+
+.histofy-generator-form {
+  space: 16px 0;
+}
+
+.histofy-form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.histofy-form-group {
+  flex: 1;
+}
+
+.histofy-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--histofy-text);
+}
+
+.histofy-generator-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Modal Styles */
+.histofy-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  font-family: var(--histofy-font);
+}
+
+.histofy-modal-content {
+  background: var(--histofy-bg);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow-lg);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: histofy-modal-appear 0.3s ease-out;
+}
+
+.histofy-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: var(--histofy-bg-secondary);
+  border-bottom: 1px solid var(--histofy-border);
+}
+
+.histofy-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--histofy-text);
+}
+
+.histofy-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--histofy-text-secondary);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.histofy-modal-body {
+  padding: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.histofy-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px;
+  background: var(--histofy-bg-secondary);
+  border-top: 1px solid var(--histofy-border);
+}
+
+.histofy-warning-box {
+  padding: 12px;
+  background: #fff8e1;
+  border: 1px solid #ffb74d;
+  border-radius: var(--histofy-radius);
+  margin-bottom: 16px;
+  color: #e65100;
+}
+
+@keyframes histofy-modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Commit Editor Styles */
+.histofy-commit-editor {
+  margin: 16px 0;
+  background: var(--histofy-bg);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-commit-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--histofy-bg-secondary);
+  border-bottom: 1px solid var(--histofy-border);
+}
+
+.histofy-commit-editor-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--histofy-text);
+}
+
+.histofy-commit-editor-controls {
+  padding: 20px;
+}
+
+.histofy-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.histofy-date-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+}
+
+.histofy-date-picker-group label {
+  font-size: 14px;
+  color: var(--histofy-text);
+  margin: 0;
+}
+
+.histofy-editor-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--histofy-text-secondary);
+}
+
+.histofy-commit-indicator {
+  background: rgba(9, 105, 218, 0.1);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .histofy-deploy-panel {
+    width: 90vw;
+    right: 5vw;
+  }
+  
+  .histofy-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .histofy-form-row {
+    flex-direction: column;
+  }
+  
+  .histofy-commit-stats,
+  .histofy-profile-stats {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .histofy-editor-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .histofy-date-picker-group {
+    flex-wrap: wrap;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --histofy-border: #000000;
+    --histofy-text: #000000;
+    --histofy-bg: #ffffff;
+  }
+}

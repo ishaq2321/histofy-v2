@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histofy</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="histofy-popup">
+    <div class="histofy-popup-header">
+      <div class="histofy-logo">
+        <h1>🎯 Histofy</h1>
+        <p>GitHub History Modifier</p>
+      </div>
+      <div class="histofy-version" id="histofy-version">v1.0.0</div>
+    </div>
+
+    <div class="histofy-popup-content">
+      <!-- Status Section -->
+      <div class="histofy-status-section">
+        <div class="histofy-status-item">
+          <span class="histofy-status-label">Status:</span>
+          <span class="histofy-status-value" id="histofy-extension-status">Active</span>
+        </div>
+        <div class="histofy-status-item">
+          <span class="histofy-status-label">Current Page:</span>
+          <span class="histofy-status-value" id="histofy-current-page">Not GitHub</span>
+        </div>
+        <div class="histofy-status-item">
+          <span class="histofy-status-label">Pending Changes:</span>
+          <span class="histofy-status-value" id="histofy-pending-count">0</span>
+        </div>
+        <div class="histofy-status-item">
+          <span class="histofy-status-label">Completed:</span>
+          <span class="histofy-status-value" id="histofy-completed-count">0</span>
+        </div>
+        <div class="histofy-status-item">
+          <span class="histofy-status-label">Failed:</span>
+          <span class="histofy-status-value" id="histofy-failed-count">0</span>
+        </div>
+      </div>
+
+      <!-- GitHub Authentication -->
+      <div class="histofy-section">
+        <h3>🔑 GitHub Authentication</h3>
+        <div class="histofy-auth-section">
+          <div class="histofy-auth-required">
+            <p>🔑 GitHub authentication required</p>
+            <button class="histofy-popup-btn histofy-btn-primary" id="histofy-auth-login">
+              🔗 Connect GitHub
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="histofy-section">
+        <h3>⚡ Quick Actions</h3>
+        <div class="histofy-quick-actions">
+          <button class="histofy-popup-btn histofy-btn-primary" id="histofy-quick-activate">
+            🎯 Activate on Page
+          </button>
+          <button class="histofy-popup-btn histofy-btn-secondary" id="histofy-quick-deploy">
+            🚀 Open Deploy Panel
+          </button>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="histofy-section">
+        <h3>📊 Statistics</h3>
+        <div class="histofy-stats-grid">
+          <div class="histofy-stat-item">
+            <span class="histofy-stat-number" id="histofy-total-modifications">0</span>
+            <span class="histofy-stat-label">Total Modifications</span>
+          </div>
+          <div class="histofy-stat-item">
+            <span class="histofy-stat-number" id="histofy-successful-deployments">0</span>
+            <span class="histofy-stat-label">Deployments</span>
+          </div>
+          <div class="histofy-stat-item">
+            <span class="histofy-stat-number" id="histofy-features-used">0</span>
+            <span class="histofy-stat-label">Features Used</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="histofy-section">
+        <h3>🕒 Recent Activity</h3>
+        <div class="histofy-recent-activity" id="histofy-recent-activity">
+          <p class="histofy-no-activity">No recent activity</p>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="histofy-section">
+        <h3>⚙️ Settings</h3>
+        <div class="histofy-settings-list">
+          <div class="histofy-setting-item">
+            <label class="histofy-checkbox-label">
+              <input type="checkbox" id="histofy-notifications" checked>
+              <span class="histofy-checkmark"></span>
+              Enable notifications
+            </label>
+          </div>
+          <div class="histofy-setting-item">
+            <label class="histofy-checkbox-label">
+              <input type="checkbox" id="histofy-auto-backup" checked>
+              <span class="histofy-checkmark"></span>
+              Auto-backup before changes
+            </label>
+          </div>
+          <div class="histofy-setting-item">
+            <label class="histofy-select-label">
+              Theme:
+              <select id="histofy-theme" class="histofy-popup-select">
+                <option value="auto">Auto</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help & Links -->
+      <div class="histofy-section">
+        <h3>ℹ️ Help & Links</h3>
+        <div class="histofy-links">
+          <a href="#" class="histofy-link" id="histofy-help">📖 User Guide</a>
+          <a href="#" class="histofy-link" id="histofy-github">🐙 GitHub Repository</a>
+          <a href="#" class="histofy-link" id="histofy-issues">🐛 Report Issues</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="histofy-popup-footer">
+      <p>&copy; 2025 Histofy - Made with ❤️ for developers</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
