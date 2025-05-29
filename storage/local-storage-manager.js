@@ -46,9 +46,18 @@ class LocalStorageManager {
 
   async getData() {
     try {
+      if (!chrome?.storage?.local) {
+        console.warn('Histofy: Chrome storage API not available');
+        return { ...this.defaultData };
+      }
+      
       const result = await chrome.storage.local.get(this.storageKey);
       return result[this.storageKey] || { ...this.defaultData };
     } catch (error) {
+      if (error.message.includes('Extension context invalidated')) {
+        console.warn('Histofy: Extension context invalidated, using default data');
+        return { ...this.defaultData };
+      }
       console.error('Histofy: Failed to get data:', error);
       return { ...this.defaultData };
     }
@@ -56,9 +65,18 @@ class LocalStorageManager {
 
   async saveData(data) {
     try {
+      if (!chrome?.storage?.local) {
+        console.warn('Histofy: Chrome storage API not available');
+        return false;
+      }
+      
       await chrome.storage.local.set({ [this.storageKey]: data });
       return true;
     } catch (error) {
+      if (error.message.includes('Extension context invalidated')) {
+        console.warn('Histofy: Extension context invalidated, cannot save data');
+        return false;
+      }
       console.error('Histofy: Failed to save data:', error);
       return false;
     }
@@ -72,10 +90,14 @@ class LocalStorageManager {
       change.timestamp = change.timestamp || new Date().toISOString();
       
       data.pendingChanges.push(change);
-      await this.saveData(data);
+      const saved = await this.saveData(data);
       
-      console.log('Histofy: Added pending change:', change.id);
-      return change;
+      if (saved) {
+        console.log('Histofy: Added pending change:', change.id);
+        return change;
+      } else {
+        throw new Error('Failed to save pending change');
+      }
     } catch (error) {
       console.error('Histofy: Failed to add pending change:', error);
       throw error;
@@ -87,6 +109,10 @@ class LocalStorageManager {
       const data = await this.getData();
       return data.pendingChanges || [];
     } catch (error) {
+      if (error.message.includes('Extension context invalidated')) {
+        console.warn('Histofy: Extension context invalidated, returning empty pending changes');
+        return [];
+      }
       console.error('Histofy: Failed to get pending changes:', error);
       return [];
     }

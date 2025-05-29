@@ -1,12 +1,5 @@
 // Background service worker for Histofy extension
 
-// Import required scripts
-importScripts(
-  '/api/github-api.js',
-  '/api/git-operations.js',
-  '/storage/local-storage-manager.js'
-);
-
 class HistofyBackground {
   constructor() {
     this.githubAPI = null;
@@ -18,26 +11,6 @@ class HistofyBackground {
     console.log('Histofy: Background service worker initialized');
     this.setupEventListeners();
     await this.initializeStorage();
-    await this.initializeAPI();
-  }
-
-  async initializeAPI() {
-    try {
-      // Check if the classes are available
-      if (typeof GitHubAPI !== 'undefined') {
-        this.githubAPI = new GitHubAPI();
-        await this.githubAPI.init();
-      }
-      
-      if (typeof GitOperations !== 'undefined' && this.githubAPI) {
-        this.gitOperations = new GitOperations(this.githubAPI);
-        await this.gitOperations.init();
-      }
-      
-      console.log('Histofy: API components initialized');
-    } catch (error) {
-      console.error('Histofy: Failed to initialize API components:', error);
-    }
   }
 
   setupEventListeners() {
@@ -66,16 +39,10 @@ class HistofyBackground {
   async handleInstallation(details) {
     if (details.reason === 'install') {
       console.log('Histofy: Extension installed for the first time');
-      
-      // Initialize default settings
       await this.initializeDefaultSettings();
-      
-      // Show welcome notification
       this.showWelcomeNotification();
     } else if (details.reason === 'update') {
       console.log('Histofy: Extension updated to version', chrome.runtime.getManifest().version);
-      
-      // Handle migration if needed
       await this.handleVersionMigration(details.previousVersion);
     }
   }
@@ -110,20 +77,6 @@ class HistofyBackground {
           description: 'Regular daily contributions',
           pattern: 'daily',
           intensity: 'medium'
-        },
-        {
-          id: 'weekend-warrior',
-          name: 'Weekend Warrior',
-          description: 'Heavy weekend activity',
-          pattern: 'weekends',
-          intensity: 'high'
-        },
-        {
-          id: 'workday-focus',
-          name: 'Workday Focus',
-          description: 'Active during weekdays only',
-          pattern: 'weekdays',
-          intensity: 'medium'
         }
       ],
       statistics: {
@@ -152,11 +105,6 @@ class HistofyBackground {
           sendResponse({ success: true });
           break;
 
-        case 'BACKUP_CURRENT_STATE':
-          const backupResult = await this.createBackup(message.repoInfo);
-          sendResponse({ success: true, backupId: backupResult });
-          break;
-
         case 'VALIDATE_GITHUB_TOKEN':
           const validationResult = await this.validateGitHubToken(message.token);
           sendResponse({ success: true, valid: validationResult });
@@ -167,17 +115,6 @@ class HistofyBackground {
           sendResponse({ success: true, userInfo });
           break;
 
-        case 'TRACK_FEATURE_USAGE':
-          await this.trackFeatureUsage(message.feature);
-          sendResponse({ success: true });
-          break;
-
-        case 'GET_EXTENSION_STATUS':
-          const status = await this.getExtensionStatus();
-          sendResponse({ success: true, status });
-          break;
-
-        // Popup message handlers
         case 'get_api_status':
           const apiStatus = await this.getAPIStatus();
           sendResponse(apiStatus);
@@ -191,11 +128,6 @@ class HistofyBackground {
         case 'clear_pending_changes':
           const clearResult = await this.clearPendingChanges();
           sendResponse({ success: clearResult });
-          break;
-
-        case 'create_backup':
-          const backupId = await this.createBackup({ url: 'popup' });
-          sendResponse({ success: !!backupId, backupId });
           break;
 
         case 'authenticate':
@@ -220,69 +152,6 @@ class HistofyBackground {
     } catch (error) {
       console.error('Histofy: Error handling message:', error);
       sendResponse({ success: false, error: error.message });
-    }
-  }
-
-  handleTabUpdate(tabId, changeInfo, tab) {
-    // Only care about URL changes on GitHub
-    if (changeInfo.url && changeInfo.url.includes('github.com')) {
-      // Send message to content script about navigation
-      chrome.tabs.sendMessage(tabId, {
-        type: 'NAVIGATION_DETECTED',
-        url: changeInfo.url
-      }).catch(() => {
-        // Ignore errors if content script is not ready
-      });
-    }
-  }
-
-  handleStorageChange(changes, namespace) {
-    if (namespace === 'local' && changes.histofy_data) {
-      // Broadcast storage changes to all GitHub tabs
-      this.broadcastToGitHubTabs({
-        type: 'STORAGE_UPDATED',
-        changes: changes.histofy_data
-      });
-    }
-  }
-
-  async broadcastToGitHubTabs(message) {
-    try {
-      const tabs = await chrome.tabs.query({ url: 'https://github.com/*' });
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, message).catch(() => {
-          // Ignore errors for tabs without content script
-        });
-      });
-    } catch (error) {
-      console.error('Histofy: Error broadcasting to tabs:', error);
-    }
-  }
-
-  async createBackup(repoInfo) {
-    try {
-      const data = await chrome.storage.local.get('histofy_data');
-      if (!data.histofy_data) return null;
-
-      const backup = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        repository: repoInfo,
-        pendingChanges: [...data.histofy_data.pendingChanges],
-        userSettings: { ...data.histofy_data.userSettings }
-      };
-
-      data.histofy_data.backups.unshift(backup);
-      // Keep only last 20 backups
-      data.histofy_data.backups = data.histofy_data.backups.slice(0, 20);
-
-      await chrome.storage.local.set({ histofy_data: data.histofy_data });
-      
-      console.log('Histofy: Backup created with ID:', backup.id);
-      return backup.id;
-    } catch (error) {
-      console.error('Histofy: Error creating backup:', error);
-      return null;
     }
   }
 
@@ -329,78 +198,6 @@ class HistofyBackground {
     return null;
   }
 
-  async trackFeatureUsage(feature) {
-    try {
-      const data = await chrome.storage.local.get('histofy_data');
-      if (data.histofy_data) {
-        if (!data.histofy_data.statistics.featuresUsed.includes(feature)) {
-          data.histofy_data.statistics.featuresUsed.push(feature);
-        }
-        data.histofy_data.statistics.lastActivity = new Date().toISOString();
-        
-        await chrome.storage.local.set({ histofy_data: data.histofy_data });
-      }
-    } catch (error) {
-      console.error('Histofy: Error tracking feature usage:', error);
-    }
-  }
-
-  async getExtensionStatus() {
-    try {
-      const data = await chrome.storage.local.get('histofy_data');
-      const manifest = chrome.runtime.getManifest();
-
-      return {
-        version: manifest.version,
-        isActive: true,
-        pendingChanges: data.histofy_data?.pendingChanges?.length || 0,
-        backups: data.histofy_data?.backups?.length || 0,
-        lastActivity: data.histofy_data?.statistics?.lastActivity,
-        featuresUsed: data.histofy_data?.statistics?.featuresUsed?.length || 0
-      };
-    } catch (error) {
-      console.error('Histofy: Error getting extension status:', error);
-      return null;
-    }
-  }
-
-  async handleVersionMigration(previousVersion) {
-    console.log(`Histofy: Migrating from version ${previousVersion}`);
-    
-    // Add migration logic here for future versions
-    // For now, just ensure the current data structure is valid
-    try {
-      const data = await chrome.storage.local.get('histofy_data');
-      if (data.histofy_data) {
-        // Ensure new fields exist
-        if (!data.histofy_data.statistics) {
-          data.histofy_data.statistics = {
-            totalModifications: 0,
-            successfulDeployments: 0,
-            failedDeployments: 0,
-            lastActivity: null,
-            featuresUsed: []
-          };
-        }
-
-        // Ensure failedDeployments exists for existing statistics
-        if (data.histofy_data.statistics && !data.histofy_data.statistics.hasOwnProperty('failedDeployments')) {
-          data.histofy_data.statistics.failedDeployments = 0;
-        }
-
-        await chrome.storage.local.set({ histofy_data: data.histofy_data });
-      }
-    } catch (error) {
-      console.error('Histofy: Error during migration:', error);
-    }
-  }
-
-  showWelcomeNotification() {
-    // This would be implemented if we had notification permissions
-    console.log('Histofy: Welcome! Extension is ready to use on GitHub.');
-  }
-
-  // New popup message handlers
   async getAPIStatus() {
     try {
       const data = await chrome.storage.local.get('histofy_data');
@@ -536,9 +333,48 @@ class HistofyBackground {
     }
   }
 
-  // Cleanup method for extension shutdown
-  cleanup() {
-    console.log('Histofy: Background service worker cleanup');
+  handleTabUpdate(tabId, changeInfo, tab) {
+    // Only care about URL changes on GitHub
+    if (changeInfo.url && changeInfo.url.includes('github.com')) {
+      // Send message to content script about navigation
+      chrome.tabs.sendMessage(tabId, {
+        type: 'NAVIGATION_DETECTED',
+        url: changeInfo.url
+      }).catch(() => {
+        // Ignore errors if content script is not ready
+      });
+    }
+  }
+
+  handleStorageChange(changes, namespace) {
+    if (namespace === 'local' && changes.histofy_data) {
+      // Broadcast storage changes to all GitHub tabs
+      this.broadcastToGitHubTabs({
+        type: 'STORAGE_UPDATED',
+        changes: changes.histofy_data
+      });
+    }
+  }
+
+  async broadcastToGitHubTabs(message) {
+    try {
+      const tabs = await chrome.tabs.query({ url: 'https://github.com/*' });
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, message).catch(() => {
+          // Ignore errors for tabs without content script
+        });
+      });
+    } catch (error) {
+      console.error('Histofy: Error broadcasting to tabs:', error);
+    }
+  }
+
+  showWelcomeNotification() {
+    console.log('Histofy: Welcome! Extension is ready to use on GitHub.');
+  }
+
+  async handleVersionMigration(previousVersion) {
+    console.log(`Histofy: Migrating from version ${previousVersion}`);
   }
 }
 

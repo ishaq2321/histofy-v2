@@ -21,6 +21,7 @@
       "js": [
         "storage/local-storage-manager.js",
         "api/github-api.js",
+        "api/github-deployer.js",
         "api/git-operations.js",
         "content-scripts/github-detector.js",
         "ui-components/contribution-graph-overlay.js",

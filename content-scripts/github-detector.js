@@ -15,36 +15,40 @@ class GitHubDetector {
   }
 
   setupMessageListener() {
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      switch (message.type) {
-        case 'get_page_info':
-          sendResponse({
-            success: true,
-            pageInfo: this.getPageInfo()
-          });
-          break;
+    try {
+      chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        switch (message.type) {
+          case 'get_page_info':
+            sendResponse({
+              success: true,
+              pageInfo: this.getPageInfo()
+            });
+            break;
 
-        case 'activate_histofy':
-          this.activateHistofy();
-          sendResponse({ success: true });
-          break;
+          case 'activate_histofy':
+            this.activateHistofy();
+            sendResponse({ success: true });
+            break;
 
-        case 'NAVIGATION_DETECTED':
-          // Handle navigation from background script
-          this.detectPage();
-          break;
+          case 'NAVIGATION_DETECTED':
+            // Handle navigation from background script
+            this.detectPage();
+            break;
 
-        case 'STORAGE_UPDATED':
-          // Handle storage updates from background script
-          this.handleStorageUpdate(message.changes);
-          break;
+          case 'STORAGE_UPDATED':
+            // Handle storage updates from background script
+            this.handleStorageUpdate(message.changes);
+            break;
 
-        case 'PENDING_CHANGES_CLEARED':
-          // Handle pending changes cleared
-          this.handlePendingChangesCleared();
-          break;
-      }
-    });
+          case 'PENDING_CHANGES_CLEARED':
+            // Handle pending changes cleared
+            this.handlePendingChangesCleared();
+            break;
+        }
+      });
+    } catch (error) {
+      console.error('Histofy: Failed to setup message listener:', error);
+    }
   }
 
   activateHistofy() {
@@ -66,28 +70,36 @@ class GitHubDetector {
   }
 
   handleStorageUpdate(changes) {
-    // Broadcast storage updates to UI components
-    if (window.histofyContributionOverlay) {
-      window.histofyContributionOverlay.handleStorageUpdate(changes);
-    }
-    if (window.histofyCommitEditor) {
-      window.histofyCommitEditor.handleStorageUpdate(changes);
-    }
-    if (window.histofyDeployButton) {
-      window.histofyDeployButton.handleStorageUpdate(changes);
+    try {
+      // Broadcast storage updates to UI components
+      if (window.histofyContributionOverlay) {
+        window.histofyContributionOverlay.handleStorageUpdate(changes);
+      }
+      if (window.histofyCommitEditor) {
+        window.histofyCommitEditor.handleStorageUpdate(changes);
+      }
+      if (window.histofyDeployButton) {
+        window.histofyDeployButton.handleStorageUpdate(changes);
+      }
+    } catch (error) {
+      console.error('Histofy: Error handling storage update:', error);
     }
   }
 
   handlePendingChangesCleared() {
-    // Notify UI components that pending changes were cleared
-    if (window.histofyContributionOverlay) {
-      window.histofyContributionOverlay.clearPendingChanges();
-    }
-    if (window.histofyCommitEditor) {
-      window.histofyCommitEditor.clearPendingChanges();
-    }
-    if (window.histofyDeployButton) {
-      window.histofyDeployButton.updatePendingCount(0);
+    try {
+      // Notify UI components that pending changes were cleared
+      if (window.histofyContributionOverlay) {
+        window.histofyContributionOverlay.clearPendingChanges();
+      }
+      if (window.histofyCommitEditor) {
+        window.histofyCommitEditor.clearPendingChanges();
+      }
+      if (window.histofyDeployButton) {
+        window.histofyDeployButton.updatePendingCount();
+      }
+    } catch (error) {
+      console.error('Histofy: Error handling pending changes cleared:', error);
     }
   }
 
@@ -198,20 +210,24 @@ class GitHubDetector {
   }
 
   notifyPageChange() {
-    const event = new CustomEvent('histofy-page-change', {
-      detail: {
-        page: this.currentPage,
+    try {
+      const event = new CustomEvent('histofy-page-change', {
+        detail: {
+          page: this.currentPage,
+          username: this.username,
+          repository: this.repository,
+          url: window.location.href
+        }
+      });
+      
+      document.dispatchEvent(event);
+      console.log(`Histofy: Detected ${this.currentPage} page`, {
         username: this.username,
-        repository: this.repository,
-        url: window.location.href
-      }
-    });
-    
-    document.dispatchEvent(event);
-    console.log(`Histofy: Detected ${this.currentPage} page`, {
-      username: this.username,
-      repository: this.repository
-    });
+        repository: this.repository
+      });
+    } catch (error) {
+      console.error('Histofy: Error notifying page change:', error);
+    }
   }
 
   getCurrentPageInfo() {

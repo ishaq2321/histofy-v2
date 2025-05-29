@@ -4,7 +4,7 @@ class DeployButton {
     this.isDeploying = false;
     this.pendingChanges = [];
     this.githubAPI = null;
-    this.gitOperations = null;
+    this.githubDeployer = null;
     this.init();
   }
 
@@ -21,12 +21,12 @@ class DeployButton {
       if (window.GitHubAPI) {
         this.githubAPI = new window.GitHubAPI();
         await this.githubAPI.init();
-      }
-
-      // Initialize Git operations if available
-      if (window.GitOperations && this.githubAPI) {
-        this.gitOperations = new window.GitOperations(this.githubAPI);
-        await this.gitOperations.init();
+        
+        // Initialize GitHub Deployer only if API is ready
+        if (window.GitHubDeployer && this.githubAPI) {
+          this.githubDeployer = new window.GitHubDeployer(this.githubAPI);
+          console.log('Histofy: GitHub Deployer initialized');
+        }
       }
 
       // Update UI based on authentication status
@@ -38,9 +38,9 @@ class DeployButton {
 
   updateAuthenticationUI() {
     const authSection = document.querySelector('.histofy-auth-section');
-    const deployBtn = document.querySelector('#histofy-main-deploy');
+    const deployBtn = document.querySelector('#histofy-start-deploy');
     
-    if (!authSection || !deployBtn) return;
+    if (!authSection) return;
 
     if (this.githubAPI && this.githubAPI.isAuthenticated()) {
       authSection.innerHTML = `
@@ -49,7 +49,7 @@ class DeployButton {
           <button class="histofy-btn histofy-btn-warning" id="histofy-logout">🔓 Logout</button>
         </div>
       `;
-      deployBtn.disabled = false;
+      if (deployBtn) deployBtn.disabled = false;
       this.setupLogoutHandler();
     } else {
       authSection.innerHTML = `
@@ -63,7 +63,7 @@ class DeployButton {
           <p>Required scopes: <code>repo</code>, <code>user</code></p>
         </div>
       `;
-      deployBtn.disabled = true;
+      if (deployBtn) deployBtn.disabled = true;
       this.setupAuthHandlers();
     }
   }
@@ -121,6 +121,11 @@ class DeployButton {
         const isValid = await this.githubAPI.validateToken();
         
         if (isValid) {
+          // Re-initialize deployer after successful authentication
+          if (window.GitHubDeployer && this.githubAPI) {
+            this.githubDeployer = new window.GitHubDeployer(this.githubAPI);
+          }
+          
           this.updateAuthenticationUI();
           this.showNotification('Authentication successful!', 'success');
           usernameInput.value = '';
@@ -141,7 +146,32 @@ class DeployButton {
     });
 
     // Listen for storage changes to update pending count
-    setInterval(() => this.updatePendingCount(), 2000);
+    this.updateInterval = setInterval(() => {
+      this.updatePendingCount();
+    }, 2000);
+    
+    // Listen for DOM changes to ensure button stays visible
+    this.domObserver = new MutationObserver(() => {
+      if (!document.querySelector('.histofy-deploy-button')) {
+        console.log('Histofy: Deploy button disappeared, recreating...');
+        this.createFloatingButton();
+      }
+    });
+    
+    this.domObserver.observe(document.body, {
+      childList: true,
+      subtree: false
+    });
+  }
+
+  // Cleanup method
+  cleanup() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+    }
   }
 
   createFloatingButton() {
@@ -195,7 +225,6 @@ class DeployButton {
     const mainBtn = deployButton.querySelector('#histofy-main-deploy');
     const panel = deployButton.querySelector('#histofy-deploy-panel');
     const closeBtn = deployButton.querySelector('#histofy-close-panel');
-    const saveAuthBtn = deployButton.querySelector('#histofy-save-auth');
     const clearAllBtn = deployButton.querySelector('#histofy-clear-all');
     const startDeployBtn = deployButton.querySelector('#histofy-start-deploy');
 
@@ -207,15 +236,12 @@ class DeployButton {
       this.hidePanel();
     });
 
-    saveAuthBtn.addEventListener('click', () => {
-      this.saveCredentials();
-    });
-
     clearAllBtn.addEventListener('click', () => {
       this.clearAllChanges();
     });
 
     startDeployBtn.addEventListener('click', () => {
+      console.log('Histofy: Start deployment button clicked');
       this.startDeployment();
     });
 
@@ -229,7 +255,11 @@ class DeployButton {
 
   async updateButtonVisibility() {
     const deployButton = document.querySelector('.histofy-deploy-button');
-    if (!deployButton) return;
+    if (!deployButton) {
+      console.log('Histofy: Deploy button not found, recreating...');
+      this.createFloatingButton();
+      return;
+    }
 
     const pageInfo = window.histofyDetector?.getCurrentPageInfo();
     const shouldShow = pageInfo && (pageInfo.page === 'profile' || pageInfo.page === 'repository');
@@ -238,14 +268,25 @@ class DeployButton {
   }
 
   async updatePendingCount() {
-    if (window.histofyStorage) {
-      const changes = await window.histofyStorage.getPendingChanges();
+    try {
+      if (window.histofyStorage) {
+        const changes = await window.histofyStorage.getPendingChanges();
+        const countElement = document.querySelector('#histofy-pending-count');
+        if (countElement) {
+          countElement.textContent = changes.length;
+          countElement.style.display = changes.length > 0 ? 'block' : 'none';
+        }
+        this.pendingChanges = changes;
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to update pending count:', error);
+      // Set default values on error
       const countElement = document.querySelector('#histofy-pending-count');
       if (countElement) {
-        countElement.textContent = changes.length;
-        countElement.style.display = changes.length > 0 ? 'block' : 'none';
+        countElement.textContent = '0';
+        countElement.style.display = 'none';
       }
-      this.pendingChanges = changes;
+      this.pendingChanges = [];
     }
   }
 
@@ -389,13 +430,19 @@ class DeployButton {
   }
 
   async startDeployment() {
+    console.log('Histofy: Deploy button clicked');
+    
+    // Check authentication first
     if (!this.githubAPI || !this.githubAPI.isAuthenticated()) {
       this.showNotification('Please authenticate with GitHub first', 'error');
       return;
     }
 
+    // Check for pending changes
+    await this.updatePendingCount();
+    
     if (this.pendingChanges.length === 0) {
-      this.showNotification('No changes to deploy', 'warning');
+      this.showNotification('No changes to deploy. Please select some dates first.', 'warning');
       return;
     }
 
@@ -404,15 +451,31 @@ class DeployButton {
       return;
     }
 
+    // Check if deployer is initialized
+    if (!this.githubDeployer) {
+      try {
+        this.githubDeployer = new window.GitHubDeployer(this.githubAPI);
+      } catch (error) {
+        this.showNotification('Failed to initialize GitHub deployer', 'error');
+        return;
+      }
+    }
+
     try {
       this.isDeploying = true;
       this.showDeploymentStatus();
       
-      // Convert pending changes to git operations
-      await this.convertPendingChangesToOperations();
+      // Get repository information
+      const pageInfo = window.histofyDetector?.getCurrentPageInfo();
+      const deploymentOptions = {
+        private: false, // Make repository public by default
+        description: `Custom contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`
+      };
+
+      this.log('info', `Starting deployment of ${this.pendingChanges.length} pending changes`);
       
-      // Execute the operations
-      const results = await this.executeDeployment();
+      // Use the GitHub deployer
+      const results = await this.githubDeployer.deployDateSelections(this.pendingChanges, deploymentOptions);
       
       // Handle results
       this.handleDeploymentResults(results);
@@ -420,148 +483,28 @@ class DeployButton {
     } catch (error) {
       console.error('Histofy: Deployment failed:', error);
       this.showNotification(`Deployment failed: ${error.message}`, 'error');
+      this.log('error', `Deployment failed: ${error.message}`);
     } finally {
       this.isDeploying = false;
-      this.hideDeploymentStatus();
+      setTimeout(() => this.hideDeploymentStatus(), 3000);
     }
-  }
-
-  async convertPendingChangesToOperations() {
-    if (!this.gitOperations) {
-      throw new Error('Git operations not initialized');
-    }
-
-    const pageInfo = window.histofyDetector?.getCurrentPageInfo();
-    if (!pageInfo || (!pageInfo.username && !pageInfo.owner)) {
-      throw new Error('Cannot determine repository information');
-    }
-
-    const owner = pageInfo.owner || pageInfo.username;
-    const repo = pageInfo.repository;
-
-    this.updateDeploymentStatus('Converting changes to git operations...');
-
-    for (const change of this.pendingChanges) {
-      try {
-        switch (change.type) {
-          case 'date_selection':
-            await this.convertDateSelectionToOperations(change, owner, repo);
-            break;
-          case 'move_commits':
-            await this.convertMoveCommitsToOperations(change, owner, repo);
-            break;
-          case 'move_commits_timeline':
-            await this.convertTimelineMoveToOperations(change, owner, repo);
-            break;
-          case 'generate_commits':
-            await this.convertGenerateCommitsToOperations(change, owner, repo);
-            break;
-          default:
-            console.warn('Histofy: Unknown change type:', change.type);
-        }
-      } catch (error) {
-        console.error('Histofy: Failed to convert change to operation:', change, error);
-        throw new Error(`Failed to process change: ${change.type}`);
-      }
-    }
-  }
-
-  async convertDateSelectionToOperations(change, owner, repo) {
-    // Convert date selections to artificial commit operations
-    for (const date of change.dates || []) {
-      await this.gitOperations.createArtificialCommit(
-        owner,
-        repo,
-        date,
-        `Histofy: Contribution for ${date}`,
-        { 
-          source: 'date_selection',
-          changeId: change.id 
-        }
-      );
-    }
-  }
-
-  async convertMoveCommitsToOperations(change, owner, repo) {
-    // Convert move operations to commit timestamp modifications
-    const targetDate = change.targetDate;
-    
-    for (const sourceDate of change.sourceDates || []) {
-      // Get commits for the source date
-      const commits = await this.getCommitsForDate(owner, repo, sourceDate);
-      
-      for (const commit of commits) {
-        await this.gitOperations.moveCommitToDate(
-          owner,
-          repo,
-          commit.sha,
-          targetDate,
-          {
-            source: 'move_commits',
-            changeId: change.id,
-            originalDate: sourceDate
-          }
-        );
-      }
-    }
-  }
-
-  async convertTimelineMoveToOperations(change, owner, repo) {
-    // Convert timeline moves to specific commit operations
-    const targetDate = change.targetDate;
-    
-    for (const commitInfo of change.commits || []) {
-      await this.gitOperations.moveCommitToDate(
-        owner,
-        repo,
-        commitInfo.sha,
-        targetDate,
-        {
-          source: 'timeline_move',
-          changeId: change.id,
-          originalDate: commitInfo.date
-        }
-      );
-    }
-  }
-
-  async convertGenerateCommitsToOperations(change, owner, repo) {
-    // Convert generated commit patterns to artificial commits
-    for (const commitData of change.commits || []) {
-      await this.gitOperations.createArtificialCommit(
-        owner,
-        repo,
-        commitData.date,
-        commitData.message || `Histofy: Generated commit for ${commitData.date}`,
-        {
-          source: 'generate_commits',
-          changeId: change.id
-        }
-      );
-    }
-  }
-
-  async executeDeployment() {
-    this.updateDeploymentStatus('Executing git operations...');
-    
-    // Use the new deployment system
-    const deploymentResult = await this.gitOperations.deployAllOperations({
-      createBackup: true,
-      stopOnError: false
-    });
-
-    if (!deploymentResult.success) {
-      throw new Error(deploymentResult.message || 'Deployment failed');
-    }
-
-    return deploymentResult.results;
   }
 
   handleDeploymentResults(results) {
-    const { successful, failed, total } = results;
+    const { successful, failed, repositories } = results;
+    
+    this.log('info', `Deployment completed: ${successful.length} successful, ${failed.length} failed`);
     
     if (failed.length === 0) {
-      this.showNotification(`✅ Deployment successful! ${successful.length} operations completed.`, 'success');
+      this.showNotification(`✅ Deployment successful! Created ${successful.length} commits.`, 'success');
+      
+      // Show repository links
+      repositories.forEach((repoResult, repoKey) => {
+        if (repoResult.repository?.html_url) {
+          this.log('success', `Repository: ${repoResult.repository.html_url}`);
+        }
+      });
+      
     } else if (successful.length > 0) {
       this.showNotification(`⚠️ Partial success: ${successful.length} succeeded, ${failed.length} failed.`, 'warning');
     } else {
@@ -579,36 +522,9 @@ class DeployButton {
   }
 
   async clearProcessedChanges(successfulOperations) {
-    const processedChangeIds = new Set(
-      successfulOperations
-        .map(op => op.options?.changeId)
-        .filter(id => id)
-    );
-
+    // Clear all pending changes since they were processed
     if (window.histofyStorage) {
-      for (const changeId of processedChangeIds) {
-        await window.histofyStorage.removePendingChange(changeId);
-      }
-    }
-  }
-
-  async getCommitsForDate(owner, repo, date) {
-    // Get commits for a specific date
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    endDate.setDate(endDate.getDate() + 1);
-
-    try {
-      const commits = await this.githubAPI.getRepositoryCommits(owner, repo, {
-        since: startDate.toISOString(),
-        until: endDate.toISOString(),
-        per_page: 100
-      });
-
-      return commits || [];
-    } catch (error) {
-      console.error('Histofy: Failed to get commits for date:', date, error);
-      return [];
+      await window.histofyStorage.clearPendingChanges();
     }
   }
 
@@ -629,11 +545,43 @@ class DeployButton {
       statusDiv.innerHTML = `
         <div class="histofy-deployment-progress">
           <div class="histofy-progress-bar">
-            <div class="histofy-progress-fill"></div>
+            <div class="histofy-progress-fill" id="histofy-progress-fill"></div>
           </div>
-          <p>🚀 Preparing deployment...</p>
+          <p id="histofy-deployment-message">🚀 Preparing deployment...</p>
+          <div class="histofy-deployment-logs" id="histofy-deployment-logs">
+            <!-- Logs will appear here -->
+          </div>
         </div>
       `;
+
+      // Listen for deployment status updates
+      document.addEventListener('histofy-deployment-status', (event) => {
+        this.updateDeploymentProgress(event.detail);
+      });
+    }
+  }
+
+  updateDeploymentProgress(status) {
+    const messageElement = document.querySelector('#histofy-deployment-message');
+    const progressFill = document.querySelector('#histofy-progress-fill');
+    const logsContainer = document.querySelector('#histofy-deployment-logs');
+
+    if (messageElement) {
+      messageElement.textContent = status.currentStep || 'Processing...';
+    }
+
+    if (progressFill) {
+      progressFill.style.width = `${status.progress || 0}%`;
+    }
+
+    if (logsContainer && status.logs) {
+      // Show last few log entries
+      const recentLogs = status.logs.slice(-3);
+      logsContainer.innerHTML = recentLogs.map(log => 
+        `<div class="histofy-log-entry histofy-log-${log.level}">
+          ${log.message}
+        </div>`
+      ).join('');
     }
   }
 
@@ -642,6 +590,13 @@ class DeployButton {
     if (statusDiv) {
       statusDiv.style.display = 'none';
     }
+
+    // Remove event listener
+    document.removeEventListener('histofy-deployment-status', this.updateDeploymentProgress);
+  }
+
+  log(level, message) {
+    console.log(`Histofy Deploy [${level.toUpperCase()}]:`, message);
   }
 
   showNotification(message, type = 'info') {

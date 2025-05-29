@@ -25,6 +25,11 @@ class GitHubAPI {
   // Credential Management
   async loadCredentials() {
     try {
+      if (!chrome?.storage?.local) {
+        console.warn('Histofy: Chrome storage API not available');
+        return;
+      }
+      
       const result = await chrome.storage.local.get(['histofy_github_token', 'histofy_github_user']);
       this.token = result.histofy_github_token || null;
       this.user = result.histofy_github_user || null;
@@ -33,12 +38,21 @@ class GitHubAPI {
         console.log('Histofy: GitHub token loaded from storage');
       }
     } catch (error) {
-      console.error('Histofy: Failed to load credentials:', error);
+      if (error.message.includes('Extension context invalidated')) {
+        console.warn('Histofy: Extension context invalidated, cannot load credentials');
+      } else {
+        console.error('Histofy: Failed to load credentials:', error);
+      }
     }
   }
 
   async saveCredentials(token, user = null) {
     try {
+      if (!chrome?.storage?.local) {
+        console.warn('Histofy: Chrome storage API not available');
+        return false;
+      }
+      
       await chrome.storage.local.set({
         histofy_github_token: token,
         histofy_github_user: user
@@ -48,7 +62,11 @@ class GitHubAPI {
       console.log('Histofy: GitHub credentials saved');
       return true;
     } catch (error) {
-      console.error('Histofy: Failed to save credentials:', error);
+      if (error.message.includes('Extension context invalidated')) {
+        console.warn('Histofy: Extension context invalidated, cannot save credentials');
+      } else {
+        console.error('Histofy: Failed to save credentials:', error);
+      }
       return false;
     }
   }
