@@ -32,12 +32,25 @@ class LocalStorageManager {
 
   async ensureDataStructure() {
     try {
-      const data = await chrome.storage.local.get(this.storageKey);
-      if (!data[this.storageKey]) {
-        await chrome.storage.local.set({
-          [this.storageKey]: { ...this.defaultData }
-        });
-        console.log('Histofy: Initialized default storage structure');
+      const data = await this.getData();
+      if (!data) {
+        const defaultData = {
+          pendingChanges: [],
+          userSettings: {
+            username: '',
+            token: '',
+            autoBackup: true,
+            theme: 'auto',
+            notifications: true
+          },
+          statistics: {
+            totalModifications: 0,
+            successfulDeployments: 0,
+            failedDeployments: 0,
+            lastActivity: null
+          }
+        };
+        await this.saveData(defaultData);
       }
     } catch (error) {
       console.error('Histofy: Failed to ensure data structure:', error);
@@ -46,37 +59,19 @@ class LocalStorageManager {
 
   async getData() {
     try {
-      if (!chrome?.storage?.local) {
-        console.warn('Histofy: Chrome storage API not available');
-        return { ...this.defaultData };
-      }
-      
       const result = await chrome.storage.local.get(this.storageKey);
-      return result[this.storageKey] || { ...this.defaultData };
+      return result[this.storageKey] || null;
     } catch (error) {
-      if (error.message.includes('Extension context invalidated')) {
-        console.warn('Histofy: Extension context invalidated, using default data');
-        return { ...this.defaultData };
-      }
       console.error('Histofy: Failed to get data:', error);
-      return { ...this.defaultData };
+      return null;
     }
   }
 
   async saveData(data) {
     try {
-      if (!chrome?.storage?.local) {
-        console.warn('Histofy: Chrome storage API not available');
-        return false;
-      }
-      
       await chrome.storage.local.set({ [this.storageKey]: data });
       return true;
     } catch (error) {
-      if (error.message.includes('Extension context invalidated')) {
-        console.warn('Histofy: Extension context invalidated, cannot save data');
-        return false;
-      }
       console.error('Histofy: Failed to save data:', error);
       return false;
     }
@@ -86,117 +81,135 @@ class LocalStorageManager {
   async addPendingChange(change) {
     try {
       const data = await this.getData();
-      change.id = change.id || this.generateId();
-      change.timestamp = change.timestamp || new Date().toISOString();
-      
-      // Check for duplicates before adding
+      if (!data) {
+        await this.ensureDataStructure();
+        return await this.addPendingChange(change);
+      }
+
+      // Check for duplicates
       if (this.isDuplicateChange(change, data.pendingChanges)) {
-        console.log('Histofy: Duplicate change detected, not adding:', change.type);
-        return null; // Return null to indicate no change was added
+        console.log('Histofy: Duplicate change detected, skipping');
+        return null;
       }
+
+      // Add unique ID and timestamp
+      const changeWithId = {
+        id: this.generateId(),
+        timestamp: new Date().toISOString(),
+        ...change
+      };
+
+      data.pendingChanges.push(changeWithId);
+      await this.saveData(data);
       
-      data.pendingChanges.push(change);
-      const saved = await this.saveData(data);
-      
-      if (saved) {
-        console.log('Histofy: Added pending change:', change.id);
-        return change;
-      } else {
-        throw new Error('Failed to save pending change');
-      }
+      console.log('Histofy: Added pending change:', changeWithId.id);
+      return changeWithId;
     } catch (error) {
       console.error('Histofy: Failed to add pending change:', error);
-      throw error;
+      return null;
+    }
+  }
+
+  async getPendingChanges() {
+    try {
+      const data = await this.getData();
+      return data?.pendingChanges || [];
+    } catch (error) {
+      console.error('Histofy: Failed to get pending changes:', error);
+      return [];
+    }
+  }
+
+  async removePendingChange(changeId) {
+    try {
+      const data = await this.getData();
+      if (!data) return false;
+
+      const initialLength = data.pendingChanges.length;
+      data.pendingChanges = data.pendingChanges.filter(change => change.id !== changeId);
+      
+      if (data.pendingChanges.length < initialLength) {
+        await this.saveData(data);
+        console.log('Histofy: Removed pending change:', changeId);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Histofy: Failed to remove pending change:', error);
+      return false;
+    }
+  }
+
+  async clearPendingChanges() {
+    try {
+      const data = await this.getData();
+      if (!data) return false;
+
+      data.pendingChanges = [];
+      await this.saveData(data);
+      console.log('Histofy: Cleared all pending changes');
+      return true;
+    } catch (error) {
+      console.error('Histofy: Failed to clear pending changes:', error);
+      return false;
     }
   }
 
   // Check if a change is duplicate of existing pending changes
   isDuplicateChange(newChange, existingChanges) {
-    return existingChanges.some(existingChange => {
-      // Same type is required for comparison
-      if (newChange.type !== existingChange.type) {
-        return false;
-      }
+    return existingChanges.some(existing => {
+      if (existing.type !== newChange.type) return false;
 
       switch (newChange.type) {
         case 'date_selection':
-          return this.isDuplicateDateSelection(newChange, existingChange);
-        
+          return this.isDuplicateDateSelection(newChange, existing);
         case 'move_commits':
-          return this.isDuplicateMoveCommits(newChange, existingChange);
-        
+          return this.isDuplicateMoveCommits(newChange, existing);
         case 'move_commits_timeline':
-          return this.isDuplicateTimelineMove(newChange, existingChange);
-        
+          return this.isDuplicateTimelineMove(newChange, existing);
         case 'generate_commits':
-          return this.isDuplicateGenerateCommits(newChange, existingChange);
-        
+          return this.isDuplicateGenerateCommits(newChange, existing);
         case 'intensity_pattern':
-          return this.isDuplicateIntensityPattern(newChange, existingChange);
-        
+          return this.isDuplicateIntensityPattern(newChange, existing);
         default:
-          // For unknown types, compare basic properties
-          return this.isDuplicateBasic(newChange, existingChange);
+          return this.isDuplicateBasic(newChange, existing);
       }
     });
   }
 
   // Check if date selections are duplicate
   isDuplicateDateSelection(newChange, existingChange) {
-    // Compare date arrays (order independent)
-    const newDates = (newChange.dates || []).sort();
-    const existingDates = (existingChange.dates || []).sort();
+    if (!newChange.dates || !existingChange.dates) return false;
     
-    if (newDates.length !== existingDates.length) {
-      return false;
+    const newDates = new Set(newChange.dates);
+    const existingDates = new Set(existingChange.dates);
+    
+    // Check if there's any overlap
+    for (const date of newDates) {
+      if (existingDates.has(date)) {
+        return true;
+      }
     }
-    
-    // Check if all dates match
-    const datesMatch = newDates.every((date, index) => date === existingDates[index]);
-    
-    // Also compare contribution levels for each date
-    const contributionsMatch = this.areContributionsEqual(
-      newChange.contributions || {}, 
-      existingChange.contributions || {}
-    );
-    
-    return datesMatch && contributionsMatch;
+    return false;
   }
 
   // Check if move commits operations are duplicate
   isDuplicateMoveCommits(newChange, existingChange) {
-    const newSourceDates = (newChange.sourceDates || []).sort();
-    const existingSourceDates = (existingChange.sourceDates || []).sort();
-    
-    const sourceDatesMatch = newSourceDates.length === existingSourceDates.length &&
-      newSourceDates.every((date, index) => date === existingSourceDates[index]);
-    
-    const targetDateMatch = newChange.targetDate === existingChange.targetDate;
-    
-    return sourceDatesMatch && targetDateMatch;
+    return newChange.targetDate === existingChange.targetDate &&
+           JSON.stringify(newChange.sourceDates) === JSON.stringify(existingChange.sourceDates);
   }
 
   // Check if timeline move operations are duplicate
   isDuplicateTimelineMove(newChange, existingChange) {
-    const newCommits = (newChange.commits || []).sort();
-    const existingCommits = (existingChange.commits || []).sort();
-    
-    const commitsMatch = newCommits.length === existingCommits.length &&
-      newCommits.every((commit, index) => commit === existingCommits[index]);
-    
-    const targetDateMatch = newChange.targetDate === existingChange.targetDate;
-    const repoMatch = newChange.repository === existingChange.repository;
-    
-    return commitsMatch && targetDateMatch && repoMatch;
+    return newChange.targetDate === existingChange.targetDate &&
+           JSON.stringify(newChange.commits) === JSON.stringify(existingChange.commits);
   }
 
   // Check if generate commits operations are duplicate
   isDuplicateGenerateCommits(newChange, existingChange) {
     return newChange.startDate === existingChange.startDate &&
            newChange.endDate === existingChange.endDate &&
-           newChange.pattern === existingChange.pattern &&
-           newChange.frequency === existingChange.frequency &&
-           newChange.messageTemplate === existingChange.messageTemplate;
+           newChange.pattern === existingChange.pattern;
   }
 
   // Check if intensity pattern operations are duplicate
@@ -207,62 +220,37 @@ class LocalStorageManager {
 
   // Basic duplicate check for unknown types
   isDuplicateBasic(newChange, existingChange) {
-    // Compare JSON representation (excluding id and timestamp)
-    const newCopy = { ...newChange };
-    const existingCopy = { ...existingChange };
-    
-    delete newCopy.id;
-    delete newCopy.timestamp;
-    delete existingCopy.id;
-    delete existingCopy.timestamp;
-    
-    return JSON.stringify(newCopy) === JSON.stringify(existingCopy);
+    return JSON.stringify(newChange) === JSON.stringify(existingChange);
   }
 
   // Helper to compare contributions objects
   areContributionsEqual(newContributions, existingContributions) {
-    const newKeys = Object.keys(newContributions).sort();
-    const existingKeys = Object.keys(existingContributions).sort();
-    
-    // Check if same number of dates have contributions
-    if (newKeys.length !== existingKeys.length) {
-      return false;
-    }
-    
-    // Check if all keys match
-    if (!newKeys.every((key, index) => key === existingKeys[index])) {
-      return false;
-    }
-    
-    // Check if contribution levels match for each date
-    return newKeys.every(date => {
-      const newContrib = newContributions[date];
-      const existingContrib = existingContributions[date];
-      
-      return newContrib.level === existingContrib.level &&
-             newContrib.name === existingContrib.name &&
-             newContrib.commits === existingContrib.commits;
-    });
+    if (!newContributions && !existingContributions) return true;
+    if (!newContributions || !existingContributions) return false;
+    return JSON.stringify(newContributions) === JSON.stringify(existingContributions);
   }
 
   // User settings management
   async getUserSettings() {
     try {
       const data = await this.getData();
-      return data.userSettings || { ...this.defaultData.userSettings };
+      return data?.userSettings || {};
     } catch (error) {
       console.error('Histofy: Failed to get user settings:', error);
-      return { ...this.defaultData.userSettings };
+      return {};
     }
   }
 
   async updateUserSettings(newSettings) {
     try {
       const data = await this.getData();
+      if (!data) {
+        await this.ensureDataStructure();
+        return await this.updateUserSettings(newSettings);
+      }
+
       data.userSettings = { ...data.userSettings, ...newSettings };
       await this.saveData(data);
-      
-      console.log('Histofy: Updated user settings');
       return true;
     } catch (error) {
       console.error('Histofy: Failed to update user settings:', error);
@@ -274,20 +262,33 @@ class LocalStorageManager {
   async getStatistics() {
     try {
       const data = await this.getData();
-      return data.statistics || { ...this.defaultData.statistics };
+      return data?.statistics || {
+        totalModifications: 0,
+        successfulDeployments: 0,
+        failedDeployments: 0,
+        lastActivity: null
+      };
     } catch (error) {
       console.error('Histofy: Failed to get statistics:', error);
-      return { ...this.defaultData.statistics };
+      return {
+        totalModifications: 0,
+        successfulDeployments: 0,
+        failedDeployments: 0,
+        lastActivity: null
+      };
     }
   }
 
   async updateStatistics(newStats) {
     try {
       const data = await this.getData();
+      if (!data) {
+        await this.ensureDataStructure();
+        return await this.updateStatistics(newStats);
+      }
+
       data.statistics = { ...data.statistics, ...newStats };
-      data.statistics.lastActivity = new Date().toISOString();
       await this.saveData(data);
-      
       return true;
     } catch (error) {
       console.error('Histofy: Failed to update statistics:', error);
@@ -299,70 +300,62 @@ class LocalStorageManager {
   async getStorageStats() {
     try {
       const data = await this.getData();
+      const pendingChanges = data?.pendingChanges?.length || 0;
+      const statistics = data?.statistics || {};
+      
       return {
-        pendingChanges: data.pendingChanges?.length || 0,
-        backups: data.backups?.length || 0,
-        templates: data.templates?.length || 0,
-        totalSize: JSON.stringify(data).length
+        pendingChanges: pendingChanges,
+        totalModifications: statistics.totalModifications || 0,
+        successfulDeployments: statistics.successfulDeployments || 0,
+        failedDeployments: statistics.failedDeployments || 0
       };
     } catch (error) {
       console.error('Histofy: Failed to get storage stats:', error);
       return {
         pendingChanges: 0,
-        backups: 0,
-        templates: 0,
-        totalSize: 0
+        totalModifications: 0,
+        successfulDeployments: 0,
+        failedDeployments: 0
       };
     }
   }
 
   // Utility methods
   generateId() {
-    return Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    return 'histofy_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
 
   // Export/Import functionality
   async exportData() {
     try {
       const data = await this.getData();
-      return {
+      const exportData = {
         ...data,
-        exportedAt: new Date().toISOString(),
+        exportDate: new Date().toISOString(),
         version: '1.0.0'
       };
+      return JSON.stringify(exportData, null, 2);
     } catch (error) {
       console.error('Histofy: Failed to export data:', error);
-      throw error;
+      return null;
     }
   }
 
   async importData(importedData) {
     try {
+      const parsedData = typeof importedData === 'string' ? JSON.parse(importedData) : importedData;
+      
       // Validate imported data structure
-      if (!importedData || typeof importedData !== 'object') {
+      if (!parsedData.pendingChanges && !parsedData.userSettings) {
         throw new Error('Invalid import data format');
       }
 
-      // Merge with default structure to ensure all required fields exist
-      const mergedData = {
-        ...this.defaultData,
-        ...importedData,
-        userSettings: {
-          ...this.defaultData.userSettings,
-          ...(importedData.userSettings || {})
-        },
-        statistics: {
-          ...this.defaultData.statistics,
-          ...(importedData.statistics || {})
-        }
-      };
-
-      await this.saveData(mergedData);
+      await this.saveData(parsedData);
       console.log('Histofy: Data imported successfully');
       return true;
     } catch (error) {
       console.error('Histofy: Failed to import data:', error);
-      throw error;
+      return false;
     }
   }
 }

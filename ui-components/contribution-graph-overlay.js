@@ -739,15 +739,62 @@ class ContributionGraphOverlay {
     }
   }
 
+  async saveSelectedDates() {
+    if (this.selectedDates.size === 0) {
+      this.showNotification('No dates selected', 'warning');
+      return;
+    }
+
+    try {
+      const dateArray = Array.from(this.selectedDates);
+      const contributions = this.getContributionLevels(dateArray);
+      
+      const changeData = {
+        type: 'date_selection',
+        dates: dateArray,
+        contributions: contributions,
+        year: this.currentYear,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('Histofy: Saving selected dates:', changeData);
+
+      if (window.histofyStorage) {
+        const result = await window.histofyStorage.addPendingChange(changeData);
+        
+        if (result === null) {
+          this.showNotification('⚠️ These dates are already selected!', 'warning');
+        } else {
+          this.showNotification(`✅ Saved ${dateArray.length} selected dates for deployment`, 'success');
+          console.log('Histofy: Successfully saved date selection:', result);
+          
+          // Trigger update of deploy button
+          setTimeout(() => {
+            if (window.histofyDeployButton) {
+              window.histofyDeployButton.updatePendingCount();
+            }
+          }, 100);
+        }
+      } else {
+        console.error('Histofy: Storage manager not available');
+        this.showNotification('❌ Storage manager not available', 'error');
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to save selected dates:', error);
+      this.showNotification('❌ Failed to save selections', 'error');
+    }
+  }
+
   // Methods to handle storage updates and cleanup
   handleStorageUpdate(changes) {
-    // Handle storage updates from background script
-    console.log('Histofy: Storage updated in overlay:', changes);
+    // Reload selected dates when storage changes
+    this.loadSelectedDates();
   }
 
   clearPendingChanges() {
-    // Handle pending changes cleared
-    this.clearSelection();
+    // Clear visual selections when pending changes are cleared
+    this.clearAllSelections();
+    this.showNotification('Pending changes cleared', 'info');
   }
 }
 

@@ -277,6 +277,7 @@ class DeployButton {
           countElement.style.display = changes.length > 0 ? 'block' : 'none';
         }
         this.pendingChanges = changes;
+        console.log(`Histofy: Updated pending count: ${changes.length}`);
       }
     } catch (error) {
       console.error('Histofy: Failed to update pending count:', error);
@@ -316,11 +317,14 @@ class DeployButton {
     const changesList = document.querySelector('#histofy-changes-list');
     if (!changesList) return;
 
+    // Force refresh changes before populating
+    await this.updatePendingCount();
+
     if (this.pendingChanges.length === 0) {
       changesList.innerHTML = `
         <div class="histofy-no-changes">
-          <p>No pending changes</p>
-          <p>Start by selecting dates or commits to modify!</p>
+          <p>📭 No pending changes</p>
+          <p>💡 Go to a GitHub profile and select dates to get started!</p>
         </div>
       `;
       return;
@@ -365,11 +369,16 @@ class DeployButton {
   formatChangeDetails(change) {
     switch (change.type) {
       case 'date_selection':
-        return `Selected ${change.dates?.length || 0} dates`;
+        const dateCount = change.dates?.length || 0;
+        const sampleDates = change.dates?.slice(0, 3).join(', ') || '';
+        const moreText = dateCount > 3 ? ` and ${dateCount - 3} more...` : '';
+        return `Selected ${dateCount} dates: ${sampleDates}${moreText}`;
       case 'move_commits':
         return `Move ${change.sourceDates?.length || 0} dates to ${change.targetDate}`;
       case 'move_commits_timeline':
         return `Move ${change.commits?.length || 0} commits to ${change.targetDate}`;
+      case 'intensity_pattern':
+        return `Pattern: ${change.commits}/${change.intensity}`;
       default:
         return 'Details not available';
     }
@@ -379,21 +388,31 @@ class DeployButton {
     return new Date(timestamp).toLocaleTimeString();
   }
 
-  async removeChange(changeId) {
-    if (window.histofyStorage) {
-      await window.histofyStorage.removePendingChange(changeId);
-      await this.updatePendingCount();
-      this.populateChangesList();
-      this.showNotification('Change removed', 'info');
+  async clearAllChanges() {
+    if (confirm('Are you sure you want to clear all pending changes? This action cannot be undone.')) {
+      if (window.histofyStorage) {
+        const success = await window.histofyStorage.clearPendingChanges();
+        if (success) {
+          await this.updatePendingCount();
+          this.populateChangesList();
+          this.showNotification('All changes cleared', 'info');
+        } else {
+          this.showNotification('Failed to clear changes', 'error');
+        }
+      }
     }
   }
 
-  async clearAllChanges() {
+  async removeChange(changeId) {
     if (window.histofyStorage) {
-      await window.histofyStorage.clearPendingChanges();
-      await this.updatePendingCount();
-      this.populateChangesList();
-      this.showNotification('All changes cleared', 'info');
+      const success = await window.histofyStorage.removePendingChange(changeId);
+      if (success) {
+        await this.updatePendingCount();
+        this.populateChangesList();
+        this.showNotification('Change removed', 'info');
+      } else {
+        this.showNotification('Failed to remove change', 'error');
+      }
     }
   }
 
@@ -432,17 +451,42 @@ class DeployButton {
   async startDeployment() {
     console.log('Histofy: Deploy button clicked');
     
+    // Force refresh pending changes before checking
+    await this.updatePendingCount();
+    
+    // Check for pending changes with more detailed logging
+    console.log('Histofy: Checking pending changes:', this.pendingChanges);
+    
+    if (!this.pendingChanges || this.pendingChanges.length === 0) {
+      console.log('Histofy: No pending changes found');
+      this.showNotification('No changes to deploy. Please select some dates first.', 'warning');
+      
+      // Try to get changes directly from storage as a fallback
+      try {
+        if (window.histofyStorage) {
+          const directChanges = await window.histofyStorage.getPendingChanges();
+          console.log('Histofy: Direct storage check:', directChanges);
+          if (directChanges && directChanges.length > 0) {
+            this.pendingChanges = directChanges;
+            console.log('Histofy: Found changes in direct check, proceeding...');
+          } else {
+            this.showDetailedNoChangesMessage();
+            return;
+          }
+        } else {
+          this.showNotification('Storage manager not available', 'error');
+          return;
+        }
+      } catch (error) {
+        console.error('Histofy: Error in direct storage check:', error);
+        this.showNotification('Error checking for changes', 'error');
+        return;
+      }
+    }
+
     // Check authentication first
     if (!this.githubAPI || !this.githubAPI.isAuthenticated()) {
       this.showNotification('Please authenticate with GitHub first', 'error');
-      return;
-    }
-
-    // Check for pending changes
-    await this.updatePendingCount();
-    
-    if (this.pendingChanges.length === 0) {
-      this.showNotification('No changes to deploy. Please select some dates first.', 'warning');
       return;
     }
 
@@ -488,6 +532,36 @@ class DeployButton {
       this.isDeploying = false;
       setTimeout(() => this.hideDeploymentStatus(), 3000);
     }
+  }
+
+  showDetailedNoChangesMessage() {
+    // Show a more helpful message about how to create changes
+    const notification = document.createElement('div');
+    notification.className = 'histofy-detailed-notification';
+    notification.innerHTML = `
+      <div class="histofy-notification-content">
+        <h4>No Changes to Deploy</h4>
+        <p>To create changes for deployment:</p>
+        <ul>
+          <li>1. Go to a GitHub profile page</li>
+          <li>2. Click "Activate Histofy" button</li>
+          <li>3. Click on contribution squares to select dates</li>
+          <li>4. Selected dates will be saved automatically</li>
+          <li>5. Return here to deploy changes</li>
+        </ul>
+        <button class="histofy-btn histofy-btn-primary" onclick="this.parentElement.parentElement.remove()">
+          Got it!
+        </button>
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 10000);
   }
 
   handleDeploymentResults(results) {
