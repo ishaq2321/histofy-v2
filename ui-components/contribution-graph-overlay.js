@@ -110,52 +110,64 @@ class ContributionGraphOverlay {
       </div>
       <div class="histofy-overlay-canvas" style="display: none;">
         <div class="histofy-instructions">
-          <h4>📝 How to Use:</h4>
-          <div class="histofy-instruction-grid">
-            <div class="histofy-instruction-item">
-              <span class="histofy-click-demo" style="background-color: #ebedf0; border: 1px solid #d0d7de;">1st</span>
-              <span>Clear (no contributions)</span>
+          <div class="histofy-section-header">
+            <span class="histofy-icon">🎯</span>
+            <h4>How to Use</h4>
+          </div>
+          <div class="histofy-steps">
+            <div class="histofy-step">
+              <span class="histofy-step-tile" style="background: #ebedf0;">1</span>
+              <span>Clear</span>
             </div>
-            <div class="histofy-instruction-item">
-              <span class="histofy-click-demo" style="background-color: #9be9a8;">2nd</span>
-              <span>Low (1-3 commits)</span>
+            <div class="histofy-step">
+              <span class="histofy-step-tile" style="background: #9be9a8;">2</span>
+              <span>Low (1-3)</span>
             </div>
-            <div class="histofy-instruction-item">
-              <span class="histofy-click-demo" style="background-color: #40c463;">3rd</span>
-              <span>Medium (4-6 commits)</span>
+            <div class="histofy-step">
+              <span class="histofy-step-tile" style="background: #40c463;">3</span>
+              <span>Medium (4-6)</span>
             </div>
-            <div class="histofy-instruction-item">
-              <span class="histofy-click-demo" style="background-color: #30a14e;">4th</span>
-              <span>High (7-10 commits)</span>
+            <div class="histofy-step">
+              <span class="histofy-step-tile" style="background: #30a14e;">4</span>
+              <span>High (7-10)</span>
             </div>
-            <div class="histofy-instruction-item">
-              <span class="histofy-click-demo" style="background-color: #216e39;">5th</span>
-              <span>Very High (11+ commits)</span>
+            <div class="histofy-step">
+              <span class="histofy-step-tile" style="background: #216e39; color: white;">5</span>
+              <span>Very High (11+)</span>
             </div>
           </div>
-          <p><strong>Tip:</strong> Click tiles to cycle through contribution levels. After 5th click, tile returns to clear state.</p>
+          <div class="histofy-tip">💡 Click tiles to cycle through levels</div>
         </div>
-        <div class="histofy-selection-summary" id="histofy-selection-summary">
-          <h4>📊 Current Selections:</h4>
-          <div id="histofy-level-breakdown" class="histofy-level-breakdown">
-            <div class="histofy-level-stat">
-              <span class="histofy-level-color" style="background-color: #9be9a8;"></span>
-              <span>Low: <span id="histofy-low-count">0</span></span>
+        <div class="histofy-stats">
+          <div class="histofy-section-header">
+            <span class="histofy-icon">📊</span>
+            <h4>Current Selection</h4>
+          </div>
+          <div class="histofy-stats-grid">
+            <div class="histofy-stat-item">
+              <span class="histofy-stat-dot" style="background: #9be9a8;"></span>
+              <span>Low</span>
+              <span class="histofy-stat-count" id="histofy-low-count">0</span>
             </div>
-            <div class="histofy-level-stat">
-              <span class="histofy-level-color" style="background-color: #40c463;"></span>
-              <span>Medium: <span id="histofy-medium-count">0</span></span>
+            <div class="histofy-stat-item">
+              <span class="histofy-stat-dot" style="background: #40c463;"></span>
+              <span>Medium</span>
+              <span class="histofy-stat-count" id="histofy-medium-count">0</span>
             </div>
-            <div class="histofy-level-stat">
-              <span class="histofy-level-color" style="background-color: #30a14e;"></span>
-              <span>High: <span id="histofy-high-count">0</span></span>
+            <div class="histofy-stat-item">
+              <span class="histofy-stat-dot" style="background: #30a14e;"></span>
+              <span>High</span>
+              <span class="histofy-stat-count" id="histofy-high-count">0</span>
             </div>
-            <div class="histofy-level-stat">
-              <span class="histofy-level-color" style="background-color: #216e39;"></span>
-              <span>Very High: <span id="histofy-very-high-count">0</span></span>
+            <div class="histofy-stat-item">
+              <span class="histofy-stat-dot" style="background: #216e39;"></span>
+              <span>Very High</span>
+              <span class="histofy-stat-count" id="histofy-very-high-count">0</span>
             </div>
           </div>
-          <p class="histofy-total-selected">Total: <span id="histofy-total-selected">0</span> tiles modified</p>
+          <div class="histofy-total">
+            <span>⚡ Total: <strong id="histofy-total-selected">0</strong> tiles</span>
+          </div>
         </div>
       </div>
     `;
