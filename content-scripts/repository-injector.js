@@ -138,10 +138,10 @@ class RepositoryInjector {
                 <div class="histofy-form-group">
                   <label>Commits Per Day:</label>
                   <select id="histofy-gen-frequency" class="histofy-input">
-                    <option value="1-3">1-3 commits</option>
-                    <option value="4-8">4-8 commits</option>
-                    <option value="9-15">9-15 commits</option>
-                    <option value="16-25">16-25 commits</option>
+                    <option value="1-3">Light Green (1-3 commits)</option>
+                    <option value="4-8">Medium Green (4-8 commits)</option>
+                    <option value="9-12">Dark Green (9-12 commits)</option>
+                    <option value="13-20">Darkest Green (13-20 commits)</option>
                   </select>
                 </div>
               </div>

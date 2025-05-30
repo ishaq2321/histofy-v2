@@ -222,9 +222,13 @@ class ProfileInjector {
             </button>
           </div>
           <div class="histofy-intensity-info">
-            <p><strong>Format:</strong> Commits/Intensity</p>
-            <p><strong>Commits:</strong> Number of commits per day</p>
-            <p><strong>Intensity:</strong> Contribution level visual appearance</p>
+            <p><strong>GitHub Contribution Levels (Commits per Day):</strong></p>
+            <p>• <strong>Light Green:</strong> 1-3 commits</p>
+            <p>• <strong>Medium Green:</strong> 4-8 commits</p>
+            <p>• <strong>Dark Green:</strong> 9-12 commits</p>
+            <p>• <strong>Darkest Green:</strong> 13+ commits</p>
+            <p><em>⚠️ Requirements: Associated email, default branch, up to 24h to appear</em></p>
+            <p><em>📖 <a href="https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-settings-on-your-profile/why-are-my-contributions-not-showing-up-on-my-profile" target="_blank">Learn more about contribution counting</a></em></p>
           </div>
         </div>
       </div>
