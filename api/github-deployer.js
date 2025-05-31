@@ -27,17 +27,21 @@ class GitHubDeployer {
         repositories: new Map()
       };
 
-      // Step 1: Group changes by repository
-      this.updateStatus('Analyzing pending changes...', 5);
-      const changesByRepo = this.groupChangesByRepository(pendingChanges);
+      // Step 1: Analyze deployment target
+      this.updateStatus('Analyzing deployment target...', 5);
+      const targetRepo = this.determineTargetRepository(options);
 
-      // Step 2: Process each repository
+      // Step 2: Group changes by repository
+      this.updateStatus('Analyzing pending changes...', 10);
+      const changesByRepo = this.groupChangesByRepository(pendingChanges, targetRepo);
+
+      // Step 3: Process each repository
       let processedRepos = 0;
       const totalRepos = Object.keys(changesByRepo).length;
 
       for (const [repoKey, changes] of Object.entries(changesByRepo)) {
         try {
-          this.updateStatus(`Processing repository: ${repoKey}`, 10 + (processedRepos * 80 / totalRepos));
+          this.updateStatus(`Processing repository: ${repoKey}`, 15 + (processedRepos * 75 / totalRepos));
           
           const repoResult = await this.deployToRepository(repoKey, changes, options);
           results.repositories.set(repoKey, repoResult);
@@ -63,13 +67,37 @@ class GitHubDeployer {
     }
   }
 
+  // Determine target repository based on options
+  determineTargetRepository(options) {
+    if (options.targetRepository) {
+      // Custom repository specified
+      const [owner, repo] = options.targetRepository.split('/');
+      return { owner, repo };
+    }
+
+    // Default to recommended repository
+    const pageInfo = window.histofyDetector?.getCurrentPageInfo();
+    let owner = 'histofy-contributions';
+    
+    if (pageInfo && pageInfo.username) {
+      owner = pageInfo.username;
+    } else if (this.api.user?.login) {
+      owner = this.api.user.login;
+    }
+
+    return { 
+      owner: owner, 
+      repo: 'histofy-contributions' 
+    };
+  }
+
   // Deploy changes to a specific repository
   async deployToRepository(repoKey, changes, options = {}) {
     const [owner, repoName] = repoKey.split('/');
     
     this.log('info', `Starting deployment to ${owner}/${repoName}`);
 
-    // Step 1: Get or create repository
+    // Step 1: Check if this is an existing repository or create new one
     const repository = await this.getOrCreateRepository(owner, repoName, options);
     
     // Step 2: Get the repository's main branch
@@ -113,20 +141,32 @@ class GitHubDeployer {
       // First try to get existing repository
       const existingRepo = await this.api.getRepository(owner, repoName);
       this.log('info', `Using existing repository: ${existingRepo.html_url}`);
+      
+      // Check if user has push access
+      if (!existingRepo.permissions?.push && !existingRepo.permissions?.admin) {
+        throw new Error(`Insufficient permissions to push to ${owner}/${repoName}`);
+      }
+      
       return existingRepo;
       
     } catch (error) {
       // Repository doesn't exist or is not accessible
       if (error.message.includes('404')) {
-        // Try to create a new repository if user is the owner
-        const currentUser = await this.api.getCurrentUser();
-        
-        if (currentUser.login === owner) {
-          this.log('info', `Creating new repository: ${owner}/${repoName}`);
-          return await this.createRepository(repoName, options);
+        // Check if we should create a new repository
+        if (options.createIfNotExists !== false) {
+          const currentUser = await this.api.getCurrentUser();
+          
+          if (currentUser.login === owner) {
+            this.log('info', `Creating new repository: ${owner}/${repoName}`);
+            return await this.createRepository(repoName, options);
+          } else {
+            throw new Error(`Repository ${owner}/${repoName} not found and cannot create repository for different user`);
+          }
         } else {
-          throw new Error(`Repository ${owner}/${repoName} not found and cannot create repository for different user`);
+          throw new Error(`Repository ${owner}/${repoName} not found`);
         }
+      } else if (error.message.includes('Insufficient permissions')) {
+        throw error;
       } else {
         throw error;
       }
@@ -559,25 +599,33 @@ Follows GitHub contribution counting rules: ✅ Email ✅ Default branch ✅ UTC
   }
 
   // Group changes by repository
-  groupChangesByRepository(changes) {
+  groupChangesByRepository(changes, targetRepo = null) {
     const groups = {};
     
     changes.forEach(change => {
-      // Extract repository info from current page or use default
-      const pageInfo = window.histofyDetector?.getCurrentPageInfo();
-      let repoKey = 'histofy-contributions';
+      let repoKey;
       
-      if (pageInfo && pageInfo.username) {
-        if (pageInfo.repository) {
-          repoKey = `${pageInfo.username}/${pageInfo.repository}`;
-        } else {
-          // Profile page - create a contributions repository
-          repoKey = `${pageInfo.username}/histofy-contributions`;
-        }
+      if (targetRepo) {
+        // Use specified target repository
+        repoKey = `${targetRepo.owner}/${targetRepo.repo}`;
       } else {
-        // Fallback to current user's contributions repo
-        if (this.api.user?.login) {
-          repoKey = `${this.api.user.login}/histofy-contributions`;
+        // Extract repository info from current page or use default
+        const pageInfo = window.histofyDetector?.getCurrentPageInfo();
+        
+        if (pageInfo && pageInfo.username) {
+          if (pageInfo.repository) {
+            repoKey = `${pageInfo.username}/${pageInfo.repository}`;
+          } else {
+            // Profile page - create a contributions repository
+            repoKey = `${pageInfo.username}/histofy-contributions`;
+          }
+        } else {
+          // Fallback to current user's contributions repo
+          if (this.api.user?.login) {
+            repoKey = `${this.api.user.login}/histofy-contributions`;
+          } else {
+            repoKey = 'histofy-contributions/histofy-contributions';
+          }
         }
       }
       

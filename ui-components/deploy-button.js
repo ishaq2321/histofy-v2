@@ -5,14 +5,26 @@ class DeployButton {
     this.pendingChanges = [];
     this.githubAPI = null;
     this.githubDeployer = null;
+    this.userRepositories = [];
     this.init();
   }
 
   async init() {
+    console.log('Histofy: Deploy button initializing...');
+    
+    // Wait a bit for other components to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     this.setupEventListeners();
     this.createFloatingButton();
+    
+    // Initialize API after button is created
     await this.initializeAPI();
-    console.log('Histofy: Deploy button initialized');
+    
+    // Initial update
+    await this.updatePendingCount();
+    
+    console.log('Histofy: Deploy button initialized successfully');
   }
 
   async initializeAPI() {
@@ -45,8 +57,8 @@ class DeployButton {
     if (this.githubAPI && this.githubAPI.isAuthenticated()) {
       authSection.innerHTML = `
         <div class="histofy-auth-status">
-          <span class="histofy-auth-success">✅ Authenticated as ${this.githubAPI.user?.login || 'Unknown'}</span>
-          <button class="histofy-btn histofy-btn-warning" id="histofy-logout">🔓 Logout</button>
+          <span class="histofy-auth-success">Authenticated as ${this.githubAPI.user?.login || 'Unknown'}</span>
+          <button class="histofy-btn histofy-btn-warning" id="histofy-logout">Logout</button>
         </div>
       `;
       if (deployBtn) deployBtn.disabled = false;
@@ -84,7 +96,9 @@ class DeployButton {
   setupAuthHandlers() {
     const saveAuthBtn = document.querySelector('#histofy-save-auth');
     if (saveAuthBtn) {
-      saveAuthBtn.addEventListener('click', async () => {
+      saveAuthBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         await this.handleAuthentication();
       });
     }
@@ -94,6 +108,7 @@ class DeployButton {
     inputs.forEach(input => {
       input.addEventListener('keypress', async (e) => {
         if (e.key === 'Enter') {
+          e.preventDefault();
           await this.handleAuthentication();
         }
       });
@@ -202,6 +217,53 @@ class DeployButton {
               <button class="histofy-btn histofy-btn-secondary" id="histofy-save-auth">💾 Save Credentials</button>
             </div>
           </div>
+          
+          <div class="histofy-repository-section">
+            <h4>🎯 Deployment Target</h4>
+            <div class="histofy-repo-options">
+              <div class="histofy-repo-option">
+                <label class="histofy-radio-label">
+                  <input type="radio" name="histofy-repo-choice" value="recommended" checked>
+                  <span class="histofy-radio-custom"></span>
+                  <div class="histofy-repo-details">
+                    <strong>🌟 Histofy Contributions (Recommended)</strong>
+                    <p>Deploy to a dedicated public repository for contribution patterns</p>
+                  </div>
+                </label>
+              </div>
+              <div class="histofy-repo-option">
+                <label class="histofy-radio-label">
+                  <input type="radio" name="histofy-repo-choice" value="existing">
+                  <span class="histofy-radio-custom"></span>
+                  <div class="histofy-repo-details">
+                    <strong>📁 Existing Repository</strong>
+                    <p>Deploy to one of your existing repositories</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+            
+            <div class="histofy-repo-selector" id="histofy-repo-selector" style="display: none;">
+              <label>Select Repository:</label>
+              <select id="histofy-repo-select" class="histofy-input">
+                <option value="">Loading repositories...</option>
+              </select>
+              <button class="histofy-btn histofy-btn-secondary" id="histofy-refresh-repos">🔄 Refresh</button>
+            </div>
+            
+            <div class="histofy-repo-info" id="histofy-repo-info">
+              <div class="histofy-info-card">
+                <h5>✅ Recommended Repository Benefits:</h5>
+                <ul>
+                  <li>Automatically created if it doesn't exist</li>
+                  <li>Optimized for contribution counting</li>
+                  <li>Clean history dedicated to patterns</li>
+                  <li>Public visibility by default</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
           <div class="histofy-changes-list" id="histofy-changes-list">
             <!-- Changes will be populated here -->
           </div>
@@ -228,19 +290,28 @@ class DeployButton {
     const clearAllBtn = deployButton.querySelector('#histofy-clear-all');
     const startDeployBtn = deployButton.querySelector('#histofy-start-deploy');
 
-    mainBtn.addEventListener('click', () => {
+    mainBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Histofy: Main deploy button clicked');
       this.togglePanel();
     });
 
-    closeBtn.addEventListener('click', () => {
+    closeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       this.hidePanel();
     });
 
-    clearAllBtn.addEventListener('click', () => {
+    clearAllBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       this.clearAllChanges();
     });
 
-    startDeployBtn.addEventListener('click', () => {
+    startDeployBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       console.log('Histofy: Start deployment button clicked');
       this.startDeployment();
     });
@@ -251,52 +322,229 @@ class DeployButton {
         this.hidePanel();
       }
     });
+
+    // Setup authentication handlers
+    this.setupAuthHandlers();
+
+    // Repository selection handlers
+    const repoRadios = deployButton.querySelectorAll('input[name="histofy-repo-choice"]');
+    const repoSelector = deployButton.querySelector('#histofy-repo-selector');
+    const repoInfo = deployButton.querySelector('#histofy-repo-info');
+    const refreshReposBtn = deployButton.querySelector('#histofy-refresh-repos');
+
+    repoRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        this.handleRepositoryOptionChange();
+      });
+    });
+
+    if (refreshReposBtn) {
+      refreshReposBtn.addEventListener('click', () => {
+        this.loadUserRepositories(true);
+      });
+    }
+
+    // Initial repository option handling
+    this.handleRepositoryOptionChange();
   }
 
-  async updateButtonVisibility() {
-    const deployButton = document.querySelector('.histofy-deploy-button');
-    if (!deployButton) {
-      console.log('Histofy: Deploy button not found, recreating...');
-      this.createFloatingButton();
+  togglePanel() {
+    const panel = document.querySelector('#histofy-deploy-panel');
+    if (!panel) {
+      console.error('Histofy: Deploy panel not found');
       return;
     }
 
-    const pageInfo = window.histofyDetector?.getCurrentPageInfo();
-    const shouldShow = pageInfo && (pageInfo.page === 'profile' || pageInfo.page === 'repository');
+    if (panel.style.display === 'none' || !panel.style.display) {
+      console.log('Histofy: Showing deploy panel');
+      this.showPanel();
+    } else {
+      console.log('Histofy: Hiding deploy panel');
+      this.hidePanel();
+    }
+  }
 
-    deployButton.style.display = shouldShow ? 'block' : 'none';
+  async showPanel() {
+    const panel = document.querySelector('#histofy-deploy-panel');
+    if (!panel) return;
+
+    panel.style.display = 'block';
+    
+    console.log('Histofy: Panel shown, updating content...');
+    
+    await this.updatePendingCount();
+    await this.populateChangesList();
+    
+    // Load repositories if authenticated and existing repo option might be selected
+    if (this.githubAPI && this.githubAPI.isAuthenticated()) {
+      await this.loadUserRepositories();
+    }
+
+    // Update authentication UI
+    this.updateAuthenticationUI();
+  }
+
+  hidePanel() {
+    const panel = document.querySelector('#histofy-deploy-panel');
+    if (panel) {
+      panel.style.display = 'none';
+    }
   }
 
   async updatePendingCount() {
     try {
       if (window.histofyStorage) {
-        const changes = await window.histofyStorage.getPendingChanges();
+        const pendingChanges = await window.histofyStorage.getPendingChanges();
+        this.pendingChanges = pendingChanges || [];
+        
         const countElement = document.querySelector('#histofy-pending-count');
         if (countElement) {
-          countElement.textContent = changes.length;
-          countElement.style.display = changes.length > 0 ? 'block' : 'none';
+          countElement.textContent = this.pendingChanges.length;
+          countElement.style.display = this.pendingChanges.length > 0 ? 'inline' : 'none';
         }
-        this.pendingChanges = changes;
-        console.log(`Histofy: Updated pending count: ${changes.length}`);
+        
+        console.log(`Histofy: Updated pending count: ${this.pendingChanges.length}`);
+      } else {
+        console.warn('Histofy: Storage manager not available');
+        this.pendingChanges = [];
       }
     } catch (error) {
       console.error('Histofy: Failed to update pending count:', error);
-      // Set default values on error
-      const countElement = document.querySelector('#histofy-pending-count');
-      if (countElement) {
-        countElement.textContent = '0';
-        countElement.style.display = 'none';
-      }
       this.pendingChanges = [];
     }
   }
 
-  togglePanel() {
-    const panel = document.querySelector('#histofy-deploy-panel');
-    if (panel.style.display === 'none') {
-      this.showPanel();
+  updateButtonVisibility() {
+    const deployButton = document.querySelector('.histofy-deploy-button');
+    if (!deployButton) {
+      // Recreate button if it doesn't exist
+      this.createFloatingButton();
+      return;
+    }
+
+    // Update pending count
+    this.updatePendingCount();
+  }
+
+  showDetailedNoChangesMessage() {
+    this.showNotification(`
+      No changes to deploy. To get started:
+      1. Go to a GitHub profile page
+      2. Click on contribution squares to select dates
+      3. Come back here to deploy your changes
+    `, 'info');
+  }
+
+  async loadUserRepositories(forceRefresh = false) {
+    const repoSelect = document.querySelector('#histofy-repo-select');
+    if (!repoSelect) return;
+
+    // Check if we have cached repositories and not forcing refresh
+    if (!forceRefresh && this.userRepositories && this.userRepositories.length > 0) {
+      this.populateRepositorySelect();
+      return;
+    }
+
+    if (!this.githubAPI || !this.githubAPI.isAuthenticated()) {
+      repoSelect.innerHTML = '<option value="">Please authenticate first</option>';
+      return;
+    }
+
+    try {
+      repoSelect.innerHTML = '<option value="">Loading repositories...</option>';
+      repoSelect.disabled = true;
+
+      // Load user repositories
+      const repositories = await this.githubAPI.getUserRepositories({
+        type: 'owner',
+        sort: 'updated',
+        per_page: 100
+      });
+
+      // Filter repositories that user can push to
+      this.userRepositories = repositories.filter(repo => 
+        repo.permissions?.push === true || repo.permissions?.admin === true
+      );
+
+      this.populateRepositorySelect();
+
+    } catch (error) {
+      console.error('Histofy: Failed to load repositories:', error);
+      repoSelect.innerHTML = '<option value="">Failed to load repositories</option>';
+      this.showNotification('Failed to load repositories. Please check your connection.', 'error');
+    } finally {
+      repoSelect.disabled = false;
+    }
+  }
+
+  populateRepositorySelect() {
+    const repoSelect = document.querySelector('#histofy-repo-select');
+    if (!repoSelect || !this.userRepositories) return;
+
+    if (this.userRepositories.length === 0) {
+      repoSelect.innerHTML = '<option value="">No repositories found</option>';
+      return;
+    }
+
+    // Group repositories by visibility
+    const publicRepos = this.userRepositories.filter(repo => !repo.private);
+    const privateRepos = this.userRepositories.filter(repo => repo.private);
+
+    let optionsHtml = '<option value="">Select a repository</option>';
+
+    if (publicRepos.length > 0) {
+      optionsHtml += '<optgroup label="📂 Public Repositories">';
+      publicRepos.forEach(repo => {
+        const description = repo.description ? ` - ${repo.description.substring(0, 50)}` : '';
+        optionsHtml += `<option value="${repo.full_name}">${repo.name}${description}</option>`;
+      });
+      optionsHtml += '</optgroup>';
+    }
+
+    if (privateRepos.length > 0) {
+      optionsHtml += '<optgroup label="🔒 Private Repositories">';
+      privateRepos.forEach(repo => {
+        const description = repo.description ? ` - ${repo.description.substring(0, 50)}` : '';
+        optionsHtml += `<option value="${repo.full_name}">${repo.name}${description}</option>`;
+      });
+      optionsHtml += '</optgroup>';
+    }
+
+    repoSelect.innerHTML = optionsHtml;
+  }
+
+  async handleRepositoryOptionChange() {
+    const selectedOption = document.querySelector('input[name="histofy-repo-choice"]:checked')?.value;
+    const repoSelector = document.querySelector('#histofy-repo-selector');
+    const repoInfo = document.querySelector('#histofy-repo-info');
+
+    if (selectedOption === 'existing') {
+      repoSelector.style.display = 'block';
+      repoInfo.innerHTML = `
+        <div class="histofy-info-card">
+          <h5>📋 Existing Repository Requirements:</h5>
+          <ul>
+            <li>You must have push access to the repository</li>
+            <li>Commits will be added to the default branch</li>
+            <li>Repository can be public or private</li>
+            <li>Existing commit history will be preserved</li>
+          </ul>
+        </div>
+      `;
+      await this.loadUserRepositories();
     } else {
-      this.hidePanel();
+      repoSelector.style.display = 'none';
+      repoInfo.innerHTML = `
+        <div class="histofy-info-card">
+          <h5>✅ Recommended Repository Benefits:</h5>
+          <ul>
+            <li>Automatically created if it doesn't exist</li>
+            <li>Optimized for contribution counting</li>
+            <li>Clean history dedicated to patterns</li>
+            <li>Public visibility by default</li>
+          </ul>
+        </div>
+      `;
     }
   }
 
@@ -306,6 +554,11 @@ class DeployButton {
     
     await this.updatePendingCount();
     this.populateChangesList();
+    
+    // Load repositories if authenticated and existing repo option might be selected
+    if (this.githubAPI && this.githubAPI.isAuthenticated()) {
+      await this.loadUserRepositories();
+    }
   }
 
   hidePanel() {
@@ -435,16 +688,34 @@ class DeployButton {
   }
 
   async loadSavedCredentials() {
-    if (window.histofyStorage) {
-      const settings = await window.histofyStorage.getUserSettings();
-      if (settings.username) {
+    try {
+      if (window.histofyStorage) {
+        const settings = await window.histofyStorage.getUserSettings();
+        
+        if (settings.token && this.githubAPI) {
+          // Try to initialize with saved token
+          await this.githubAPI.saveCredentials(settings.token);
+          const isValid = await this.githubAPI.validateToken();
+          
+          if (isValid) {
+            console.log('Histofy: Loaded saved credentials successfully');
+            this.updateAuthenticationUI();
+          } else {
+            console.log('Histofy: Saved credentials are invalid');
+          }
+        }
+        
+        // Populate form fields for manual entry
         const usernameInput = document.querySelector('#histofy-username');
-        if (usernameInput) usernameInput.value = settings.username;
-      }
-      if (settings.token) {
         const tokenInput = document.querySelector('#histofy-token');
-        if (tokenInput) tokenInput.value = settings.token;
+        
+        if (usernameInput && settings.username) {
+          usernameInput.value = settings.username;
+        }
+        // Don't populate token field for security
       }
+    } catch (error) {
+      console.error('Histofy: Failed to load saved credentials:', error);
     }
   }
 
@@ -495,6 +766,27 @@ class DeployButton {
       return;
     }
 
+    // Get selected repository option
+    const selectedRepoOption = document.querySelector('input[name="histofy-repo-choice"]:checked')?.value;
+    let targetRepository = null;
+
+    if (selectedRepoOption === 'existing') {
+      const selectedRepo = document.querySelector('#histofy-repo-select')?.value;
+      if (!selectedRepo) {
+        this.showNotification('Please select a repository for deployment', 'error');
+        return;
+      }
+      targetRepository = selectedRepo;
+    } else {
+      // Use recommended repository name
+      const currentUser = this.githubAPI.user?.login;
+      if (!currentUser) {
+        this.showNotification('Unable to determine current user', 'error');
+        return;
+      }
+      targetRepository = `${currentUser}/histofy-contributions`;
+    }
+
     // Check if deployer is initialized
     if (!this.githubDeployer) {
       try {
@@ -509,20 +801,30 @@ class DeployButton {
       this.isDeploying = true;
       this.showDeploymentStatus();
       
-      // Get repository information
-      const pageInfo = window.histofyDetector?.getCurrentPageInfo();
+      // Parse repository info
+      const [owner, repoName] = targetRepository.split('/');
+      
+      // Prepare deployment options
       const deploymentOptions = {
-        private: false, // Make repository public by default
-        description: `Custom contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`
+        targetRepository: targetRepository,
+        repositoryOwner: owner,
+        repositoryName: repoName,
+        createIfNotExists: selectedRepoOption === 'recommended',
+        private: false, // Keep public for contribution counting
+        description: selectedRepoOption === 'recommended' 
+          ? `Custom contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`
+          : undefined
       };
 
-      this.log('info', `Starting deployment of ${this.pendingChanges.length} pending changes`);
+      this.log('info', `Starting deployment to ${targetRepository}`);
+      this.log('info', `Repository option: ${selectedRepoOption}`);
+      this.log('info', `Pending changes: ${this.pendingChanges.length}`);
       
-      // Use the GitHub deployer
+      // Use the GitHub deployer with target repository
       const results = await this.githubDeployer.deployDateSelections(this.pendingChanges, deploymentOptions);
       
       // Handle results
-      this.handleDeploymentResults(results);
+      this.handleDeploymentResults(results, targetRepository);
       
     } catch (error) {
       console.error('Histofy: Deployment failed:', error);
@@ -534,53 +836,25 @@ class DeployButton {
     }
   }
 
-  showDetailedNoChangesMessage() {
-    // Show a more helpful message about how to create changes
-    const notification = document.createElement('div');
-    notification.className = 'histofy-detailed-notification';
-    notification.innerHTML = `
-      <div class="histofy-notification-content">
-        <h4>No Changes to Deploy</h4>
-        <p>To create changes for deployment:</p>
-        <ul>
-          <li>1. Go to a GitHub profile page</li>
-          <li>2. Click "Activate Histofy" button</li>
-          <li>3. Click on contribution squares to select dates</li>
-          <li>4. Selected dates will be saved automatically</li>
-          <li>5. Return here to deploy changes</li>
-        </ul>
-        <button class="histofy-btn histofy-btn-primary" onclick="this.parentElement.parentElement.remove()">
-          Got it!
-        </button>
-      </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.remove();
-      }
-    }, 10000);
-  }
-
-  handleDeploymentResults(results) {
+  handleDeploymentResults(results, targetRepository) {
     const { successful, failed, repositories } = results;
     
     this.log('info', `Deployment completed: ${successful.length} successful, ${failed.length} failed`);
     
     if (failed.length === 0) {
-      this.showNotification(`✅ Deployment successful! Created ${successful.length} commits.`, 'success');
+      this.showNotification(`✅ Deployment successful! Created ${successful.length} commits in ${targetRepository}.`, 'success');
       
-      // Show repository links
+      // Show repository link
       repositories.forEach((repoResult, repoKey) => {
         if (repoResult.repository?.html_url) {
           this.log('success', `Repository: ${repoResult.repository.html_url}`);
+          // Optionally open the repository in a new tab
+          this.showRepositoryLink(repoResult.repository.html_url);
         }
       });
       
     } else if (successful.length > 0) {
-      this.showNotification(`⚠️ Partial success: ${successful.length} succeeded, ${failed.length} failed.`, 'warning');
+      this.showNotification(`⚠️ Partial success: ${successful.length} succeeded, ${failed.length} failed in ${targetRepository}.`, 'warning');
     } else {
       this.showNotification(`❌ Deployment failed: All ${failed.length} operations failed.`, 'error');
     }
@@ -593,6 +867,24 @@ class DeployButton {
     // Update UI
     this.updatePendingCount();
     this.populateChangesList();
+  }
+
+  showRepositoryLink(repoUrl) {
+    // Create a temporary notification with repository link
+    const linkNotification = document.createElement('div');
+    linkNotification.className = 'histofy-notification histofy-notification-success histofy-repo-link';
+    linkNotification.innerHTML = `
+      <div>Deployment completed!</div>
+      <button onclick="window.open('${repoUrl}', '_blank')" class="histofy-repo-link-btn">
+        🔗 View Repository
+      </button>
+    `;
+    
+    document.body.appendChild(linkNotification);
+    
+    setTimeout(() => {
+      linkNotification.remove();
+    }, 8000);
   }
 
   async clearProcessedChanges(successfulOperations) {
