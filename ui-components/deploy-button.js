@@ -1116,6 +1116,87 @@ class DeployButton {
       notification.remove();
     }, 4000);
   }
+
+  async populateChangesList() {
+    const changesList = document.querySelector('#histofy-changes-list');
+    if (!changesList) return;
+
+    // Force refresh changes before populating
+    await this.updatePendingCount();
+
+    if (this.pendingChanges.length === 0) {
+      changesList.innerHTML = `
+        <div class="histofy-no-changes">
+          <p>📭 No pending changes</p>
+          <p>💡 Go to a GitHub profile and select dates to get started!</p>
+        </div>
+      `;
+      return;
+    }
+
+    const changesHtml = this.pendingChanges.map((change, index) => {
+      return `
+        <div class="histofy-change-item" data-change-id="${change.id}">
+          <div class="histofy-change-header">
+            <span class="histofy-change-type">${this.formatChangeType(change.type)}</span>
+            <span class="histofy-change-time">${this.formatTime(change.timestamp)}</span>
+            <button class="histofy-remove-change" data-change-id="${change.id}">🗑️</button>
+          </div>
+          <div class="histofy-change-details">
+            ${this.formatChangeDetails(change)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    changesList.innerHTML = changesHtml;
+
+    // Setup remove buttons
+    changesList.querySelectorAll('.histofy-remove-change').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const changeId = e.target.getAttribute('data-change-id');
+        this.removeChange(changeId);
+      });
+    });
+  }
+
+  formatChangeType(type) {
+    const typeMap = {
+      'date_selection': '📅 Date Selection',
+      'move_commits': '🔄 Move Commits',
+      'move_commits_timeline': '⏰ Timeline Move',
+      'generate_commits': '🎲 Generate Commits',
+      'intensity_pattern': '🎨 Intensity Pattern'
+    };
+    return typeMap[type] || '❓ Unknown';
+  }
+
+  formatChangeDetails(change) {
+    switch (change.type) {
+      case 'date_selection':
+        const dateCount = change.dates?.length || 0;
+        const sampleDates = change.dates?.slice(0, 3).join(', ') || '';
+        const moreText = dateCount > 3 ? ` and ${dateCount - 3} more...` : '';
+        return `Selected ${dateCount} dates: ${sampleDates}${moreText}`;
+      case 'move_commits':
+        return `Move ${change.sourceDates?.length || 0} dates to ${change.targetDate}`;
+      case 'move_commits_timeline':
+        return `Move ${change.commits?.length || 0} commits to ${change.targetDate}`;
+      case 'intensity_pattern':
+        return `Pattern: ${change.commits}/${change.intensity}`;
+      default:
+        return 'Details not available';
+    }
+  }
+
+  formatTime(timestamp) {
+    if (!timestamp) return 'Unknown time';
+    try {
+      return new Date(timestamp).toLocaleTimeString();
+    } catch (error) {
+      return 'Invalid time';
+    }
+  }
 }
 
 // Initialize deploy button

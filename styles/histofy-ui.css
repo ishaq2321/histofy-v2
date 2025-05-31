@@ -462,15 +462,41 @@
   border: 1px solid var(--histofy-border);
 }
 
+/* Changes List Styling */
+.histofy-changes-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 20px 0;
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  background: var(--histofy-bg-main);
+}
+
+.histofy-no-changes {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--histofy-text-secondary);
+}
+
+.histofy-no-changes p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.histofy-no-changes p:first-child {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--histofy-text);
+}
+
 .histofy-change-item {
-  padding: 16px;
-  border-bottom: 1px solid var(--histofy-border-muted);
-  background: var(--histofy-bg-card);
-  transition: background 0.2s;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--histofy-border);
+  transition: background-color 0.2s;
 }
 
 .histofy-change-item:hover {
-  background: var(--histofy-bg-tertiary);
+  background: var(--histofy-bg-card);
 }
 
 .histofy-change-item:last-child {
@@ -486,63 +512,36 @@
 
 .histofy-change-type {
   font-weight: 600;
-  font-size: 13px;
   color: var(--histofy-primary);
-  background: rgba(88, 166, 255, 0.1);
-  padding: 4px 10px;
-  border-radius: 12px;
+  font-size: 13px;
 }
 
 .histofy-change-time {
   font-size: 11px;
-  color: var(--histofy-text-muted);
+  color: var(--histofy-text-secondary);
 }
 
 .histofy-remove-change {
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  background: none;
+  border: none;
+  color: var(--histofy-text-secondary);
   cursor: pointer;
-  padding: 6px 8px;
-  border-radius: var(--histofy-radius);
-  color: var(--histofy-danger);
-  transition: all 0.2s;
+  padding: 4px 8px;
+  border-radius: var(--histofy-radius-sm);
   font-size: 12px;
+  transition: all 0.2s;
 }
 
 .histofy-remove-change:hover {
-  background: rgba(248, 81, 73, 0.2);
-  border-color: var(--histofy-danger);
-  transform: scale(1.05);
+  background: var(--histofy-danger);
+  color: white;
+  transform: scale(1.1);
 }
 
 .histofy-change-details {
   font-size: 12px;
   color: var(--histofy-text-secondary);
-  line-height: 1.6;
-  background: var(--histofy-bg-main);
-  padding: 10px 12px;
-  border-radius: var(--histofy-radius);
-  border-left: 3px solid var(--histofy-border);
-}
-
-.histofy-no-changes {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--histofy-text-muted);
-  background: var(--histofy-bg-card);
-  border-radius: var(--histofy-radius);
-  border: 2px dashed var(--histofy-border);
-}
-
-.histofy-no-changes p {
-  margin: 10px 0;
-  font-size: 13px;
-}
-
-.histofy-no-changes p:first-child {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--histofy-text-secondary);
+  line-height: 1.4;
 }
 
 /* Deploy Actions */
