@@ -241,6 +241,16 @@ class DeployButton {
                   </div>
                 </label>
               </div>
+              <div class="histofy-repo-option">
+                <label class="histofy-radio-label">
+                  <input type="radio" name="histofy-repo-choice" value="new">
+                  <span class="histofy-radio-custom"></span>
+                  <div class="histofy-repo-details">
+                    <strong>✨ Create New Repository</strong>
+                    <p>Create a new repository with custom name and visibility</p>
+                  </div>
+                </label>
+              </div>
             </div>
             
             <div class="histofy-repo-selector" id="histofy-repo-selector" style="display: none;">
@@ -249,6 +259,46 @@ class DeployButton {
                 <option value="">Loading repositories...</option>
               </select>
               <button class="histofy-btn histofy-btn-secondary" id="histofy-refresh-repos">🔄 Refresh</button>
+            </div>
+
+            <div class="histofy-new-repo-form" id="histofy-new-repo-form" style="display: none;">
+              <div class="histofy-form-group">
+                <label>Repository Name:</label>
+                <div class="histofy-repo-name-input">
+                  <span class="histofy-repo-owner" id="histofy-repo-owner-display">username/</span>
+                  <input type="text" id="histofy-new-repo-name" class="histofy-input" placeholder="my-contribution-pattern" maxlength="100">
+                  <button class="histofy-btn histofy-btn-secondary" id="histofy-check-availability">✓ Check</button>
+                </div>
+                <div class="histofy-repo-name-status" id="histofy-repo-name-status"></div>
+              </div>
+              
+              <div class="histofy-form-group">
+                <label>Repository Description:</label>
+                <input type="text" id="histofy-new-repo-description" class="histofy-input" 
+                       placeholder="Custom GitHub contribution pattern created with Histofy" maxlength="350">
+              </div>
+              
+              <div class="histofy-form-group">
+                <label>Visibility:</label>
+                <div class="histofy-visibility-options">
+                  <label class="histofy-visibility-option">
+                    <input type="radio" name="histofy-repo-visibility" value="public" checked>
+                    <span class="histofy-visibility-icon">🌍</span>
+                    <div class="histofy-visibility-details">
+                      <strong>Public</strong>
+                      <p>Anyone can see this repository. Contributions count toward your profile.</p>
+                    </div>
+                  </label>
+                  <label class="histofy-visibility-option">
+                    <input type="radio" name="histofy-repo-visibility" value="private">
+                    <span class="histofy-visibility-icon">🔒</span>
+                    <div class="histofy-visibility-details">
+                      <strong>Private</strong>
+                      <p>Only you can see this repository. Contributions still count toward your profile.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
             </div>
             
             <div class="histofy-repo-info" id="histofy-repo-info">
@@ -329,8 +379,10 @@ class DeployButton {
     // Repository selection handlers
     const repoRadios = deployButton.querySelectorAll('input[name="histofy-repo-choice"]');
     const repoSelector = deployButton.querySelector('#histofy-repo-selector');
+    const newRepoForm = deployButton.querySelector('#histofy-new-repo-form');
     const repoInfo = deployButton.querySelector('#histofy-repo-info');
     const refreshReposBtn = deployButton.querySelector('#histofy-refresh-repos');
+    const checkAvailabilityBtn = deployButton.querySelector('#histofy-check-availability');
 
     repoRadios.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -341,6 +393,24 @@ class DeployButton {
     if (refreshReposBtn) {
       refreshReposBtn.addEventListener('click', () => {
         this.loadUserRepositories(true);
+      });
+    }
+
+    if (checkAvailabilityBtn) {
+      checkAvailabilityBtn.addEventListener('click', () => {
+        this.checkRepositoryAvailability();
+      });
+    }
+
+    // Auto-check availability on repo name change
+    const repoNameInput = deployButton.querySelector('#histofy-new-repo-name');
+    if (repoNameInput) {
+      let timeout;
+      repoNameInput.addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          this.checkRepositoryAvailability();
+        }, 500);
       });
     }
 
@@ -516,7 +586,12 @@ class DeployButton {
   async handleRepositoryOptionChange() {
     const selectedOption = document.querySelector('input[name="histofy-repo-choice"]:checked')?.value;
     const repoSelector = document.querySelector('#histofy-repo-selector');
+    const newRepoForm = document.querySelector('#histofy-new-repo-form');
     const repoInfo = document.querySelector('#histofy-repo-info');
+
+    // Hide all options first
+    repoSelector.style.display = 'none';
+    newRepoForm.style.display = 'none';
 
     if (selectedOption === 'existing') {
       repoSelector.style.display = 'block';
@@ -532,8 +607,21 @@ class DeployButton {
         </div>
       `;
       await this.loadUserRepositories();
+    } else if (selectedOption === 'new') {
+      newRepoForm.style.display = 'block';
+      repoInfo.innerHTML = `
+        <div class="histofy-info-card">
+          <h5>✨ New Repository Benefits:</h5>
+          <ul>
+            <li>Complete control over repository name and description</li>
+            <li>Choose between public or private visibility</li>
+            <li>Clean slate with no existing commit history</li>
+            <li>Optimized for contribution counting</li>
+          </ul>
+        </div>
+      `;
+      this.updateNewRepoOwnerDisplay();
     } else {
-      repoSelector.style.display = 'none';
       repoInfo.innerHTML = `
         <div class="histofy-info-card">
           <h5>✅ Recommended Repository Benefits:</h5>
@@ -548,97 +636,110 @@ class DeployButton {
     }
   }
 
-  async showPanel() {
-    const panel = document.querySelector('#histofy-deploy-panel');
-    panel.style.display = 'block';
-    
-    await this.updatePendingCount();
-    this.populateChangesList();
-    
-    // Load repositories if authenticated and existing repo option might be selected
-    if (this.githubAPI && this.githubAPI.isAuthenticated()) {
-      await this.loadUserRepositories();
+  updateNewRepoOwnerDisplay() {
+    const ownerDisplay = document.querySelector('#histofy-repo-owner-display');
+    if (ownerDisplay && this.githubAPI && this.githubAPI.user) {
+      ownerDisplay.textContent = `${this.githubAPI.user.login}/`;
     }
   }
 
-  hidePanel() {
-    const panel = document.querySelector('#histofy-deploy-panel');
-    panel.style.display = 'none';
-  }
+  async checkRepositoryAvailability() {
+    const repoNameInput = document.querySelector('#histofy-new-repo-name');
+    const statusElement = document.querySelector('#histofy-repo-name-status');
+    const checkButton = document.querySelector('#histofy-check-availability');
+    
+    if (!repoNameInput || !statusElement) return;
 
-  async populateChangesList() {
-    const changesList = document.querySelector('#histofy-changes-list');
-    if (!changesList) return;
+    const repoName = repoNameInput.value.trim();
+    
+    if (!repoName) {
+      statusElement.innerHTML = '';
+      return;
+    }
 
-    // Force refresh changes before populating
-    await this.updatePendingCount();
-
-    if (this.pendingChanges.length === 0) {
-      changesList.innerHTML = `
-        <div class="histofy-no-changes">
-          <p>📭 No pending changes</p>
-          <p>💡 Go to a GitHub profile and select dates to get started!</p>
+    // Validate repository name format
+    if (!this.isValidRepositoryName(repoName)) {
+      statusElement.innerHTML = `
+        <div class="histofy-repo-status histofy-repo-status-error">
+          ❌ Invalid repository name. Use letters, numbers, hyphens, and underscores only.
         </div>
       `;
       return;
     }
 
-    const changesHtml = this.pendingChanges.map((change, index) => {
-      return `
-        <div class="histofy-change-item" data-change-id="${change.id}">
-          <div class="histofy-change-header">
-            <span class="histofy-change-type">${this.formatChangeType(change.type)}</span>
-            <span class="histofy-change-time">${this.formatTime(change.timestamp)}</span>
-            <button class="histofy-remove-change" data-change-id="${change.id}">🗑️</button>
-          </div>
-          <div class="histofy-change-details">
-            ${this.formatChangeDetails(change)}
-          </div>
+    if (!this.githubAPI || !this.githubAPI.isAuthenticated()) {
+      statusElement.innerHTML = `
+        <div class="histofy-repo-status histofy-repo-status-warning">
+          ⚠️ Please authenticate to check availability
         </div>
       `;
-    }).join('');
+      return;
+    }
 
-    changesList.innerHTML = changesHtml;
+    try {
+      checkButton.disabled = true;
+      checkButton.textContent = '⏳ Checking...';
+      
+      statusElement.innerHTML = `
+        <div class="histofy-repo-status histofy-repo-status-checking">
+          🔍 Checking availability...
+        </div>
+      `;
 
-    // Setup remove buttons
-    changesList.querySelectorAll('.histofy-remove-change').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const changeId = e.target.getAttribute('data-change-id');
-        this.removeChange(changeId);
-      });
-    });
-  }
+      const currentUser = this.githubAPI.user.login;
+      const fullRepoName = `${currentUser}/${repoName}`;
 
-  formatChangeType(type) {
-    const typeMap = {
-      'date_selection': '📅 Date Selection',
-      'move_commits': '🔄 Move Commits',
-      'move_commits_timeline': '⏰ Timeline Move',
-      'generate_commits': '🎲 Generate Commits'
-    };
-    return typeMap[type] || '❓ Unknown';
-  }
-
-  formatChangeDetails(change) {
-    switch (change.type) {
-      case 'date_selection':
-        const dateCount = change.dates?.length || 0;
-        const sampleDates = change.dates?.slice(0, 3).join(', ') || '';
-        const moreText = dateCount > 3 ? ` and ${dateCount - 3} more...` : '';
-        return `Selected ${dateCount} dates: ${sampleDates}${moreText}`;
-      case 'move_commits':
-        return `Move ${change.sourceDates?.length || 0} dates to ${change.targetDate}`;
-      case 'move_commits_timeline':
-        return `Move ${change.commits?.length || 0} commits to ${change.targetDate}`;
-      case 'intensity_pattern':
-        return `Pattern: ${change.commits}/${change.intensity}`;
-      default:
-        return 'Details not available';
+      // Try to get the repository - if it exists, we'll get data; if not, we'll get a 404
+      try {
+        await this.githubAPI.getRepository(currentUser, repoName);
+        // Repository exists
+        statusElement.innerHTML = `
+          <div class="histofy-repo-status histofy-repo-status-error">
+            ❌ Repository "${repoName}" already exists
+          </div>
+        `;
+      } catch (error) {
+        if (error.message.includes('404')) {
+          // Repository doesn't exist - it's available
+          statusElement.innerHTML = `
+            <div class="histofy-repo-status histofy-repo-status-success">
+              ✅ "${repoName}" is available!
+            </div>
+          `;
+        } else {
+          // Some other error
+          statusElement.innerHTML = `
+            <div class="histofy-repo-status histofy-repo-status-error">
+              ❌ Error checking availability: ${error.message}
+            </div>
+          `;
+        }
+      }
+    } catch (error) {
+      console.error('Histofy: Failed to check repository availability:', error);
+      statusElement.innerHTML = `
+        <div class="histofy-repo-status histofy-repo-status-error">
+          ❌ Failed to check availability
+        </div>
+      `;
+    } finally {
+      checkButton.disabled = false;
+      checkButton.textContent = '✓ Check';
     }
   }
 
-  formatTime(timestamp) {
-    return new Date(timestamp).toLocaleTimeString();
+  isValidRepositoryName(name) {
+    // GitHub repository name validation
+    if (name.length === 0 || name.length > 100) return false;
+    if (name.startsWith('.') || name.endsWith('.')) return false;
+    if (name.startsWith('-') || name.endsWith('-')) return false;
+    if (!/^[a-zA-Z0-9._-]+$/.test(name)) return false;
+    
+    // Reserved names
+    const reserved = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
+    if (reserved.includes(name.toUpperCase())) return false;
+    
+    return true;
   }
 
   async clearAllChanges() {
@@ -769,6 +870,7 @@ class DeployButton {
     // Get selected repository option
     const selectedRepoOption = document.querySelector('input[name="histofy-repo-choice"]:checked')?.value;
     let targetRepository = null;
+    let deploymentOptions = {};
 
     if (selectedRepoOption === 'existing') {
       const selectedRepo = document.querySelector('#histofy-repo-select')?.value;
@@ -777,6 +879,43 @@ class DeployButton {
         return;
       }
       targetRepository = selectedRepo;
+      deploymentOptions.createIfNotExists = false;
+    } else if (selectedRepoOption === 'new') {
+      // Handle new repository creation
+      const repoName = document.querySelector('#histofy-new-repo-name')?.value.trim();
+      const repoDescription = document.querySelector('#histofy-new-repo-description')?.value.trim();
+      const isPrivate = document.querySelector('input[name="histofy-repo-visibility"]:checked')?.value === 'private';
+      
+      if (!repoName) {
+        this.showNotification('Please enter a repository name', 'error');
+        return;
+      }
+
+      if (!this.isValidRepositoryName(repoName)) {
+        this.showNotification('Please enter a valid repository name', 'error');
+        return;
+      }
+
+      // Check if the status shows the repo is available
+      const statusElement = document.querySelector('#histofy-repo-name-status');
+      if (!statusElement || !statusElement.innerHTML.includes('is available')) {
+        this.showNotification('Please check repository availability first', 'error');
+        return;
+      }
+
+      const currentUser = this.githubAPI.user?.login;
+      if (!currentUser) {
+        this.showNotification('Unable to determine current user', 'error');
+        return;
+      }
+
+      targetRepository = `${currentUser}/${repoName}`;
+      deploymentOptions = {
+        createIfNotExists: true,
+        private: isPrivate,
+        description: repoDescription || `Custom GitHub contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`,
+        forceCreate: true // Force creation since we've verified availability
+      };
     } else {
       // Use recommended repository name
       const currentUser = this.githubAPI.user?.login;
@@ -785,6 +924,11 @@ class DeployButton {
         return;
       }
       targetRepository = `${currentUser}/histofy-contributions`;
+      deploymentOptions = {
+        createIfNotExists: true,
+        private: false,
+        description: `Custom contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`
+      };
     }
 
     // Check if deployer is initialized
@@ -804,16 +948,12 @@ class DeployButton {
       // Parse repository info
       const [owner, repoName] = targetRepository.split('/');
       
-      // Prepare deployment options
-      const deploymentOptions = {
+      // Prepare final deployment options
+      const finalDeploymentOptions = {
         targetRepository: targetRepository,
         repositoryOwner: owner,
         repositoryName: repoName,
-        createIfNotExists: selectedRepoOption === 'recommended',
-        private: false, // Keep public for contribution counting
-        description: selectedRepoOption === 'recommended' 
-          ? `Custom contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`
-          : undefined
+        ...deploymentOptions
       };
 
       this.log('info', `Starting deployment to ${targetRepository}`);
@@ -821,7 +961,7 @@ class DeployButton {
       this.log('info', `Pending changes: ${this.pendingChanges.length}`);
       
       // Use the GitHub deployer with target repository
-      const results = await this.githubDeployer.deployDateSelections(this.pendingChanges, deploymentOptions);
+      const results = await this.githubDeployer.deployDateSelections(this.pendingChanges, finalDeploymentOptions);
       
       // Handle results
       this.handleDeploymentResults(results, targetRepository);

@@ -180,6 +180,11 @@ class GitHubDeployer {
       const sanitizedName = repoName.replace(/[^a-zA-Z0-9._-]/g, '-');
       const finalRepoName = sanitizedName || 'histofy-contributions';
       
+      // Check if this is a forced creation (user has verified availability)
+      if (options.forceCreate) {
+        this.log('info', `Creating new repository: ${finalRepoName} (forced creation)`);
+      }
+      
       const response = await this.api.makeRequest('/user/repos', {
         method: 'POST',
         headers: {
@@ -209,6 +214,12 @@ class GitHubDeployer {
         return repoData;
       } else {
         const errorData = await response.json();
+        
+        // Handle specific error cases
+        if (errorData.message && errorData.message.includes('name already exists')) {
+          throw new Error(`Repository name "${finalRepoName}" already exists. Please choose a different name.`);
+        }
+        
         throw new Error(`Failed to create repository: ${errorData.message}`);
       }
     } catch (error) {
