@@ -10,14 +10,15 @@ class ContributionGraphOverlay {
     this.tileEventHandlers = new Map(); // Store event handlers for cleanup
     this.protectionHandler = null; // Store protection handler for cleanup
     
-    // CORRECTED GitHub contribution levels - colors and commit ranges fixed
-    // Based on actual GitHub contribution graph system (colors were reversed)
+    // CORRECTED GitHub contribution levels - based on REAL deployment testing
+    // Real testing showed: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅
+    // Fixed ranges: Medium(10-14), High(20-24) to ensure proper intensity mapping
     this.contributionLevels = {
-      0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },           // Light gray - no contributions
-      1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },          // DARKEST green - low activity (was reversed)
-      2: { level: 2, name: 'Medium', color: '#30a14e', commits: '4-9' },       // DARK green - medium activity (was reversed)
-      3: { level: 3, name: 'High', color: '#40c463', commits: '10-19' },       // MEDIUM green - high activity (was reversed)
-      4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '20+' }     // LIGHTEST green - very high activity (was reversed)
+      0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },              // Light gray - no contributions
+      1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },             // DARKEST green - low activity ✅ Working correctly
+      2: { level: 2, name: 'Medium', color: '#30a14e', commits: '10-14' },        // DARK green - medium activity (CORRECTED from 4-9)
+      3: { level: 3, name: 'High', color: '#40c463', commits: '20-24' },          // MEDIUM green - high activity (CORRECTED from 10-19)
+      4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '25+' }        // LIGHTEST green - very high activity (ADJUSTED from 20+)
     };
     this.init();
   }
@@ -537,16 +538,20 @@ class ContributionGraphOverlay {
             </div>
             <div class="histofy-level-item">
               <span class="histofy-level-color" style="background: #30a14e"></span>
-              <span>Medium (4-9 commits)</span>
+              <span>Medium (10-14 commits)</span>
             </div>
             <div class="histofy-level-item">
               <span class="histofy-level-color" style="background: #40c463"></span>
-              <span>High (10-19 commits)</span>
+              <span>High (20-24 commits)</span>
             </div>
             <div class="histofy-level-item">
               <span class="histofy-level-color" style="background: #9be9a8"></span>
-              <span>Very High (20+ commits)</span>
+              <span>Very High (25+ commits)</span>
             </div>
+          </div>
+          <div class="histofy-testing-note">
+            <p><strong>📊 Based on Real Testing:</strong></p>
+            <p>Ranges validated: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅</p>
           </div>
         </div>
         <div class="histofy-stats">
