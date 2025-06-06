@@ -1,802 +1,885 @@
-// Contribution graph overlay for direct interaction
+// Contribution graph overlay for Histofy
 class ContributionGraphOverlay {
   constructor() {
     this.isActive = false;
-    this.selectedDates = new Set();
-    this.dragMode = null;
-    this.mutationObserver = null;
-    this.tileContributions = new Map();
-    this.tileClickCounts = new Map();
-    this.lastClickedTile = null;
-    this.clickTimeout = null;
-    this.boundHandleSquareClick = null;
-    this.visualChanges = new Map(); // Store visual changes persistently
-    this.graphRefreshTimer = null;
-    this.lastGraphHTML = '';
-    this.contributionLevels = [
-      { level: 0, name: 'None', color: '#ebedf0', commits: 0 },
-      { level: 1, name: 'Low', color: '#9be9a8', commits: '1-3' },
-      { level: 2, name: 'Medium', color: '#40c463', commits: '4-6' },
-      { level: 3, name: 'High', color: '#30a14e', commits: '7-10' },
-      { level: 4, name: 'Very High', color: '#216e39', commits: '11+' }
-    ];
+    this.contributions = {}; // Store selected contributions by date
+    this.originalColors = {}; // Store original tile colors
+    this.currentYear = new Date().getFullYear();
+    this.username = null;
+    this.debugMode = false;
+    this.tileEventHandlers = new Map(); // Store event handlers for cleanup
+    this.protectionHandler = null; // Store protection handler for cleanup
+    
+    // CORRECTED GitHub contribution levels - colors and commit ranges fixed
+    // Based on actual GitHub contribution graph system (colors were reversed)
+    this.contributionLevels = {
+      0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },           // Light gray - no contributions
+      1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },          // DARKEST green - low activity (was reversed)
+      2: { level: 2, name: 'Medium', color: '#30a14e', commits: '4-9' },       // DARK green - medium activity (was reversed)
+      3: { level: 3, name: 'High', color: '#40c463', commits: '10-19' },       // MEDIUM green - high activity (was reversed)
+      4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '20+' }     // LIGHTEST green - very high activity (was reversed)
+    };
     this.init();
   }
 
-  init() {
+  async init() {
+    console.log('Histofy: Contribution graph overlay initializing...');
+    
+    // Wait for page to be ready
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => {
+        document.addEventListener('DOMContentLoaded', resolve);
+      });
+    }
+
+    // Additional wait for GitHub's dynamic content
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     this.setupEventListeners();
     console.log('Histofy: Contribution graph overlay initialized');
   }
 
   setupEventListeners() {
-    document.addEventListener('histofy-page-change', (event) => {
-      const { page } = event.detail;
-      if (page === 'profile') {
-        setTimeout(() => this.injectOverlay(), 500);
-      } else {
-        this.cleanupOverlays();
+    // Listen for page changes (GitHub SPA navigation)
+    document.addEventListener('histofy-page-change', () => {
+      this.handlePageChange();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isActive) {
+        this.clearAllSelections();
       }
     });
 
-    // Listen for overlay toggle
-    document.addEventListener('histofy-toggle-overlay', (event) => {
-      const { year } = event.detail || {};
-      this.toggleOverlay(year);
+    // Listen for storage changes
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'histofy_data') {
+        this.loadContributions();
+      }
     });
   }
 
-  injectOverlay() {
-    // Always cleanup existing overlays first to prevent duplicates
-    this.cleanupOverlays();
-
-    const contributionGraph = this.findContributionGraph();
-    if (!contributionGraph) {
-      console.log('Histofy: Contribution graph not found');
-      return;
-    }
-
-    this.createOverlay(contributionGraph);
+  handlePageChange() {
+    console.log('Histofy: Page change detected, reinitializing overlay');
+    this.deactivate();
+    setTimeout(() => {
+      this.init();
+    }, 1000);
   }
 
-  cleanupOverlays() {
-    // Stop monitoring graph changes
-    this.stopGraphMonitoring();
-    
-    // Remove existing event listeners first
-    this.removeSquareListeners();
-    
-    // Disconnect mutation observer
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-      this.mutationObserver = null;
+  // Enhanced activation with better initialization and error handling
+  activate() {
+    console.log('Histofy: Starting activation process...');
+
+    if (this.isActive) {
+      console.log('Histofy: Overlay already active');
+      return true;
     }
 
-    // Remove any existing overlays to prevent duplicates
-    const existingOverlays = document.querySelectorAll('.histofy-overlay');
-    existingOverlays.forEach(overlay => overlay.remove());
-    
-    // Reset state but preserve visual changes if overlay is being reactivated
-    this.isActive = false;
-    this.selectedDates.clear();
-    this.tileContributions.clear();
-    this.tileClickCounts.clear();
-    this.dragMode = null;
-    this.lastClickedTile = null;
-    
-    if (this.clickTimeout) {
-      clearTimeout(this.clickTimeout);
-      this.clickTimeout = null;
-    }
-  }
+    try {
+      // Step 1: Find contribution graph
+      const contributionGraph = this.findContributionGraph();
+      if (!contributionGraph) {
+        console.error('Histofy: Could not find contribution graph element');
+        return false;
+      }
+      console.log('Histofy: Found contribution graph:', contributionGraph);
 
-  // New method to start monitoring graph changes
-  startGraphMonitoring() {
-    // Store initial graph state
-    const graphContainer = this.findContributionGraph();
-    if (graphContainer) {
-      this.lastGraphHTML = graphContainer.innerHTML;
-    }
+      // Step 2: Find contribution tiles
+      const tiles = document.querySelectorAll('[data-date]');
+      if (tiles.length === 0) {
+        console.error('Histofy: No contribution tiles found');
+        return false;
+      }
+      console.log(`Histofy: Found ${tiles.length} contribution tiles`);
 
-    // Monitor for changes every 500ms
-    this.graphRefreshTimer = setInterval(() => {
-      this.checkForGraphRefresh();
-    }, 500);
-  }
+      // Step 3: Extract user information
+      this.extractUserInfo();
+      if (!this.username) {
+        console.warn('Histofy: Could not extract username, using fallback');
+        this.username = 'unknown-user';
+      }
+      console.log(`Histofy: User: ${this.username}, Year: ${this.currentYear}`);
 
-  // Stop monitoring graph changes
-  stopGraphMonitoring() {
-    if (this.graphRefreshTimer) {
-      clearInterval(this.graphRefreshTimer);
-      this.graphRefreshTimer = null;
-    }
-  }
+      // Step 4: Initialize event handlers map if not exists
+      if (!this.tileEventHandlers) {
+        this.tileEventHandlers = new Map();
+      }
 
-  // Check if GitHub refreshed the graph
-  checkForGraphRefresh() {
-    if (!this.isActive) return;
-
-    const graphContainer = this.findContributionGraph();
-    if (!graphContainer) return;
-
-    const currentHTML = graphContainer.innerHTML;
-    
-    // If graph content changed, GitHub refreshed it
-    if (currentHTML !== this.lastGraphHTML) {
-      console.log('Histofy: Detected graph refresh, re-applying changes');
-      this.lastGraphHTML = currentHTML;
+      // Step 5: Mark as active EARLY to prevent interference
+      this.isActive = true;
+      console.log('Histofy: Marked as active');
       
-      // Re-setup everything
+      // Step 6: Set up tile interactions
+      this.setupContributionTiles();
+      console.log('Histofy: Tile handlers set up');
+      
+      // Step 7: Create instruction panel
+      this.createInstructionPanel();
+      console.log('Histofy: Instruction panel created');
+      
+      // Step 8: Load existing contributions
       setTimeout(() => {
-        this.reapplyAfterRefresh();
+        this.loadContributions();
+        console.log('Histofy: Existing contributions loaded');
       }, 100);
+      
+      // Step 9: Set up protection against deactivation
+      this.setupDeactivationProtection();
+      console.log('Histofy: Deactivation protection enabled');
+      
+      console.log('Histofy: Activation completed successfully');
+      return true;
+
+    } catch (error) {
+      console.error('Histofy: Activation failed with error:', error);
+      this.isActive = false;
+      
+      // Clean up any partial setup
+      this.removeContributionHandlers();
+      this.removeInstructionPanel();
+      
+      return false;
     }
   }
 
-  // Re-apply our changes after GitHub refreshes the graph
-  reapplyAfterRefresh() {
-    // Re-setup event listeners
-    this.setupContributionSquareListeners();
-    
-    // Re-apply all visual changes
-    this.reapplyVisualChanges();
-    
-    // Update UI counts
-    this.updateSelectedCount();
-  }
-
-  // Re-apply stored visual changes
-  reapplyVisualChanges() {
-    this.visualChanges.forEach((changeData, date) => {
-      const square = this.findSquareByDate(date);
-      if (square) {
-        this.applyVisualChange(square, changeData);
-      }
-    });
-  }
-
-  // Find a square by date
-  findSquareByDate(date) {
-    const squares = document.querySelectorAll(
-      '.ContributionCalendar-day, .js-calendar-graph-svg rect[data-date], .contrib-square'
-    );
-
-    for (const square of squares) {
-      const squareDate = this.extractDateFromSquare(square);
-      if (squareDate === date) {
-        return square;
-      }
-    }
-    return null;
-  }
-
-  // Apply visual change to a square
-  applyVisualChange(square, changeData) {
-    square.style.fill = changeData.color;
-    square.style.backgroundColor = changeData.color;
-    
-    // Update tooltip
-    this.updateSquareTooltip(square, changeData.date, changeData);
-  }
-
-  // New method to properly remove square listeners
-  removeSquareListeners() {
-    const squares = document.querySelectorAll(
-      '.ContributionCalendar-day, .js-calendar-graph-svg rect[data-date], .contrib-square'
-    );
-
-    squares.forEach(square => {
-      // Remove all histofy event listeners
-      if (this.boundHandleSquareClick) {
-        square.removeEventListener('click', this.boundHandleSquareClick);
-      }
-      
-      // Remove stored event handlers
-      if (square._histofyMouseEnter) {
-        square.removeEventListener('mouseenter', square._histofyMouseEnter);
-        delete square._histofyMouseEnter;
-      }
-      if (square._histofyMouseLeave) {
-        square.removeEventListener('mouseleave', square._histofyMouseLeave);
-        delete square._histofyMouseLeave;
-      }
-      
-      // Reset visual styles only if not in our visual changes
-      const date = this.extractDateFromSquare(square);
-      if (!this.visualChanges.has(date)) {
-        square.style.cursor = '';
-        square.style.opacity = '';
-        square.style.transform = '';
-        square.style.transition = '';
-      }
-      
-      // Remove histofy attributes
-      square.removeAttribute('histofy-listener-attached');
-    });
-  }
-
+  // Core contribution tile functionality
   findContributionGraph() {
-    // Try different selectors for different GitHub layouts
     const selectors = [
-      '.js-yearly-contributions',
-      '.ContributionCalendar',
-      '[data-testid="contribution-graph"]',
+      '.ContributionCalendar-grid',
+      '.js-calendar-graph-svg',
+      '[data-test-selector="contribution-graph"]',
       '.contrib-column'
     ];
 
     for (const selector of selectors) {
       const element = document.querySelector(selector);
       if (element) {
-        return element;
+        console.log(`Histofy: Found contribution graph using selector: ${selector}`);
+        
+        // Verify it has contribution tiles
+        const tiles = element.querySelectorAll('[data-date]');
+        if (tiles.length > 0) {
+          console.log(`Histofy: Verified ${tiles.length} tiles in contribution graph`);
+          return element;
+        } else {
+          console.log(`Histofy: Element found but no tiles: ${selector}`);
+        }
       }
     }
+
+    // Debug: Log all possible elements
+    console.log('Histofy: Available elements for debugging:');
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      console.log(`  ${selector}: ${elements.length} elements`);
+    });
 
     return null;
   }
 
-  createOverlay(contributionGraph) {
-    const overlay = document.createElement('div');
-    overlay.className = 'histofy-overlay';
-    overlay.innerHTML = `
-      <div class="histofy-overlay-header">
-        <h3>🎯 Histofy Contribution Graph Editor</h3>
-        <div class="histofy-overlay-controls">
-          <div class="histofy-mode-controls">
-            <button class="histofy-btn histofy-btn-primary histofy-mode-btn active" id="histofy-select-mode">
-              📅 Select Dates
-            </button>
-            <button class="histofy-btn histofy-btn-secondary histofy-mode-btn" id="histofy-move-mode">
-              🔄 Move Mode
-            </button>
-          </div>
-          <div class="histofy-intensity-legend">
-            <span class="histofy-legend-title">Click intensity:</span>
-            <div class="histofy-legend-items">
-              <span class="histofy-legend-item">
-                <span class="histofy-legend-dot" style="background: #9be9a8"></span>
-                1x = Low
-              </span>
-              <span class="histofy-legend-item">
-                <span class="histofy-legend-dot" style="background: #40c463"></span>
-                2x = Medium
-              </span>
-              <span class="histofy-legend-item">
-                <span class="histofy-legend-dot" style="background: #30a14e"></span>
-                3x = High
-              </span>
-              <span class="histofy-legend-item">
-                <span class="histofy-legend-dot" style="background: #216e39"></span>
-                4x = Very High
-              </span>
+  extractUserInfo() {
+    // Extract username from URL or page elements
+    const urlMatch = window.location.pathname.match(/^\/([^\/]+)/);
+    if (urlMatch && urlMatch[1] !== 'orgs' && urlMatch[1] !== 'settings') {
+      this.username = urlMatch[1];
+    }
+
+    // Alternative: Extract from page elements
+    if (!this.username) {
+      const userLink = document.querySelector('[data-hovercard-type="user"]');
+      if (userLink) {
+        const href = userLink.getAttribute('href');
+        const match = href.match(/^\/([^\/]+)/);
+        if (match) {
+          this.username = match[1];
+        }
+      }
+    }
+
+    // Extract year from contribution graph or URL
+    const yearMatch = window.location.search.match(/from=(\d{4})/);
+    if (yearMatch) {
+      this.currentYear = parseInt(yearMatch[1]);
+    } else {
+      // Try to get year from contribution calendar
+      const yearSelector = document.querySelector('.js-year-link, .js-selected-year, [data-current-year]');
+      if (yearSelector) {
+        const yearText = yearSelector.textContent || yearSelector.getAttribute('data-current-year');
+        const yearMatch = yearText.match(/(\d{4})/);
+        if (yearMatch) {
+          this.currentYear = parseInt(yearMatch[1]);
+        }
+      }
+    }
+
+    console.log(`Histofy: Extracted user info - Username: ${this.username}, Year: ${this.currentYear}`);
+  }
+
+  setupContributionTiles() {
+    const tiles = document.querySelectorAll('[data-date]');
+    console.log(`Histofy: Setting up ${tiles.length} contribution tiles`);
+
+    if (tiles.length === 0) {
+      throw new Error('No contribution tiles found with [data-date] attribute');
+    }
+
+    // Clear any existing handlers first
+    this.removeContributionHandlers();
+
+    let successCount = 0;
+
+    tiles.forEach((tile, index) => {
+      const date = tile.getAttribute('data-date');
+      if (date) {
+        try {
+          // Store original color and properties
+          this.originalColors[date] = tile.getAttribute('fill') || 
+                                     tile.style.backgroundColor || 
+                                     window.getComputedStyle(tile).backgroundColor;
+          
+          // Store original event listeners state
+          const originalPointerEvents = tile.style.pointerEvents;
+          
+          // Create event handlers with MAXIMUM isolation
+          const clickHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            if (!this.isActive) {
+              console.log('Histofy: Click ignored - overlay not active');
+              return false;
+            }
+            
+            console.log(`Histofy: Tile clicked: ${date}`);
+            this.handleTileClick(tile, date);
+            return false;
+          };
+
+          const mouseEnterHandler = (e) => {
+            if (this.isActive) {
+              e.stopPropagation();
+              tile.style.opacity = '0.8';
+              tile.style.transform = 'scale(1.05)';
+            }
+          };
+
+          const mouseLeaveHandler = (e) => {
+            if (this.isActive) {
+              e.stopPropagation();
+              tile.style.opacity = '1';
+              tile.style.transform = 'scale(1)';
+            }
+          };
+
+          // Create block handler for other events
+          const blockHandler = (e) => {
+            if (this.isActive) {
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+            }
+          };
+
+          // Store handlers for cleanup
+          this.tileEventHandlers.set(tile, {
+            click: clickHandler,
+            mouseenter: mouseEnterHandler,
+            mouseleave: mouseLeaveHandler,
+            blockHandler: blockHandler,
+            originalPointerEvents: originalPointerEvents
+          });
+
+          // Add event listeners with HIGH PRIORITY
+          tile.addEventListener('click', clickHandler, { capture: true, passive: false });
+          tile.addEventListener('mouseenter', mouseEnterHandler, { capture: true });
+          tile.addEventListener('mouseleave', mouseLeaveHandler, { capture: true });
+          tile.addEventListener('mousedown', blockHandler, { capture: true });
+          tile.addEventListener('mouseup', blockHandler, { capture: true });
+          tile.addEventListener('contextmenu', blockHandler, { capture: true });
+          
+          // Add visual indicators
+          tile.style.cursor = 'pointer';
+          tile.style.transition = 'all 0.15s ease';
+          tile.setAttribute('data-histofy-active', 'true');
+          
+          // Ensure maximum interactivity
+          tile.style.pointerEvents = 'auto';
+          tile.style.zIndex = '10';
+          tile.style.position = 'relative';
+          
+          successCount++;
+          
+        } catch (error) {
+          console.error(`Histofy: Failed to setup tile ${index} (${date}):`, error);
+        }
+      }
+    });
+    
+    console.log(`Histofy: Successfully set up ${successCount}/${tiles.length} tile handlers`);
+    
+    if (successCount === 0) {
+      throw new Error('Failed to set up any contribution tile handlers');
+    }
+  }
+
+  removeContributionHandlers() {
+    console.log('Histofy: Removing contribution handlers');
+    
+    if (!this.tileEventHandlers || this.tileEventHandlers.size === 0) {
+      console.log('Histofy: No handlers to remove');
+      return;
+    }
+    
+    // Remove event listeners using stored handlers
+    this.tileEventHandlers.forEach((handlers, tile) => {
+      try {
+        // Remove all event listeners
+        if (handlers.click) {
+          tile.removeEventListener('click', handlers.click, { capture: true });
+        }
+        if (handlers.mouseenter) {
+          tile.removeEventListener('mouseenter', handlers.mouseenter, { capture: true });
+        }
+        if (handlers.mouseleave) {
+          tile.removeEventListener('mouseleave', handlers.mouseleave, { capture: true });
+        }
+        if (handlers.blockHandler) {
+          tile.removeEventListener('mousedown', handlers.blockHandler, { capture: true });
+          tile.removeEventListener('mouseup', handlers.blockHandler, { capture: true });
+          tile.removeEventListener('contextmenu', handlers.blockHandler, { capture: true });
+        }
+        
+        // Reset tile styles and properties
+        tile.style.cursor = '';
+        tile.style.opacity = '';
+        tile.style.transform = '';
+        tile.style.transition = '';
+        tile.style.zIndex = '';
+        tile.style.position = '';
+        tile.style.pointerEvents = handlers.originalPointerEvents || '';
+        tile.removeAttribute('data-histofy-active');
+        
+      } catch (error) {
+        console.error('Histofy: Error removing handlers from tile:', error);
+      }
+    });
+    
+    // Clear the handlers map
+    this.tileEventHandlers.clear();
+    console.log('Histofy: All contribution handlers removed');
+  }
+
+  setupDeactivationProtection() {
+    // Prevent accidental deactivation from page events
+    this.protectionHandler = (e) => {
+      // Don't let other click events deactivate the overlay
+      if (this.isActive && e.target && !e.target.closest('.histofy-instruction-panel')) {
+        e.stopPropagation();
+      }
+    };
+
+    // Add protection with low priority
+    document.addEventListener('click', this.protectionHandler, { capture: false, passive: true });
+  }
+
+  removeDeactivationProtection() {
+    if (this.protectionHandler) {
+      document.removeEventListener('click', this.protectionHandler, { capture: false, passive: true });
+      this.protectionHandler = null;
+    }
+  }
+
+  // Enhanced deactivation to ensure complete cleanup
+  deactivate() {
+    if (!this.isActive) {
+      console.log('Histofy: Already deactivated');
+      return;
+    }
+
+    console.log('Histofy: Starting deactivation...');
+    
+    // First, mark as inactive to prevent new interactions
+    this.isActive = false;
+    
+    // Remove protection
+    this.removeDeactivationProtection();
+    
+    // Remove all event handlers
+    this.removeContributionHandlers();
+    
+    // Remove instruction panel
+    this.removeInstructionPanel();
+    
+    // Reset any modified tiles to original state (but keep colors if user selected them)
+    document.querySelectorAll('[data-histofy-active]').forEach(tile => {
+      tile.style.cursor = '';
+      tile.style.opacity = '';
+      tile.style.transform = '';
+      tile.style.transition = '';
+      tile.removeAttribute('data-histofy-active');
+    });
+    
+    console.log('Histofy: Overlay deactivated completely');
+  }
+
+  // Core tile click handling
+  handleTileClick(tile, date) {
+    if (!this.isActive) {
+      console.log('Histofy: Click ignored - overlay not active');
+      return;
+    }
+
+    console.log(`Histofy: Processing click for ${date}`);
+
+    // Get current level or default to 0 (no contribution)
+    const currentLevel = this.contributions[date]?.level || 0;
+    
+    // Cycle to next level (0 -> 1 -> 2 -> 3 -> 4 -> 0)
+    const nextLevel = (currentLevel + 1) % 5;
+    
+    console.log(`Histofy: Cycling tile ${date} from level ${currentLevel} to ${nextLevel}`);
+
+    // Update contribution data for this specific date
+    if (nextLevel === 0) {
+      // Remove contribution (back to original state)
+      delete this.contributions[date];
+      console.log(`Histofy: Removed contribution for ${date}`);
+    } else {
+      // Set new contribution level for this date
+      this.contributions[date] = { 
+        ...this.contributionLevels[nextLevel],
+        date: date // Store the date for reference
+      };
+      console.log(`Histofy: Set ${date} to level ${nextLevel} (${this.contributionLevels[nextLevel].name})`);
+    }
+
+    // Update tile appearance immediately
+    this.updateTileAppearance(tile, date, nextLevel);
+    
+    // Update instruction panel
+    this.updateInstructionPanel();
+    
+    // Save to storage
+    this.saveContributions();
+    
+    // Add ALL current contributions to pending changes (not just this one)
+    this.addToPendingChanges(date, nextLevel);
+
+    // Add visual feedback
+    tile.style.transform = 'scale(1.2)';
+    setTimeout(() => {
+      if (this.isActive) {
+        tile.style.transform = 'scale(1)';
+      }
+    }, 150);
+
+    console.log(`Histofy: Successfully updated ${date} to level ${nextLevel}`);
+    console.log('Histofy: Current contributions:', Object.keys(this.contributions).length, 'dates selected');
+  }
+
+  updateTileAppearance(tile, date, level) {
+    const levelConfig = this.contributionLevels[level];
+    
+    if (level === 0) {
+      // Reset to original color
+      const originalColor = this.originalColors[date];
+      if (tile.hasAttribute('fill')) {
+        tile.setAttribute('fill', originalColor);
+      } else {
+        tile.style.backgroundColor = originalColor;
+      }
+      // Remove custom title
+      tile.removeAttribute('data-histofy-title');
+      if (tile.hasAttribute('title')) {
+        tile.removeAttribute('title');
+      }
+    } else {
+      // Apply new color
+      if (tile.hasAttribute('fill')) {
+        tile.setAttribute('fill', levelConfig.color);
+      } else {
+        tile.style.backgroundColor = levelConfig.color;
+      }
+      
+      // Update tooltip/title
+      const tooltip = `${date}: ${levelConfig.name} (${levelConfig.commits} commits) - Modified by Histofy`;
+      tile.setAttribute('title', tooltip);
+      tile.setAttribute('data-histofy-title', tooltip);
+    }
+  }
+
+  // Instruction panel
+  createInstructionPanel() {
+    // Remove existing panel first
+    this.removeInstructionPanel();
+
+    const panel = document.createElement('div');
+    panel.className = 'histofy-instruction-panel';
+    panel.setAttribute('data-histofy-panel', 'true');
+    panel.innerHTML = `
+      <div class="histofy-panel-header">
+        <h3>🎯 Histofy Active</h3>
+        <button class="histofy-panel-close" data-histofy-close="panel" type="button">✕</button>
+      </div>
+      <div class="histofy-panel-content">
+        <div class="histofy-instructions">
+          <p><strong>Click tiles to cycle through contribution levels:</strong></p>
+          <div class="histofy-level-examples">
+            <div class="histofy-level-item">
+              <span class="histofy-level-color" style="background: #ebedf0; border: 1px solid #d0d7de;"></span>
+              <span>None (0 commits)</span>
+            </div>
+            <div class="histofy-level-item">
+              <span class="histofy-level-color" style="background: #216e39"></span>
+              <span>Low (1-3 commits)</span>
+            </div>
+            <div class="histofy-level-item">
+              <span class="histofy-level-color" style="background: #30a14e"></span>
+              <span>Medium (4-9 commits)</span>
+            </div>
+            <div class="histofy-level-item">
+              <span class="histofy-level-color" style="background: #40c463"></span>
+              <span>High (10-19 commits)</span>
+            </div>
+            <div class="histofy-level-item">
+              <span class="histofy-level-color" style="background: #9be9a8"></span>
+              <span>Very High (20+ commits)</span>
             </div>
           </div>
-          <div class="histofy-selection-info">
-            <span id="histofy-selected-count">0</span> dates selected
-            <button class="histofy-btn histofy-btn-warning" id="histofy-clear-selection">Clear</button>
-            <button class="histofy-btn histofy-btn-success" id="histofy-store-selection">✅ Store Changes</button>
+        </div>
+        <div class="histofy-stats">
+          <div class="histofy-stat">
+            <span class="histofy-stat-label">Selected Tiles:</span>
+            <span class="histofy-stat-value" id="histofy-selected-count">0</span>
           </div>
+        </div>
+        <div class="histofy-panel-actions">
+          <button class="histofy-btn histofy-btn-secondary" data-histofy-action="clear" type="button">🗑️ Clear All</button>
+          <button class="histofy-btn histofy-btn-warning" data-histofy-action="deactivate" type="button">❌ Deactivate</button>
         </div>
       </div>
     `;
 
-    // Find the best place to insert the overlay
-    const graphContainer = contributionGraph.closest('.BorderGrid-cell') || contributionGraph.parentNode;
-    graphContainer.insertBefore(overlay, graphContainer.firstChild);
+    document.body.appendChild(panel);
 
-    this.setupOverlayEventHandlers(overlay);
-    this.setupContributionGraphObserver();
-    this.activateOverlay(overlay);
+    // Setup panel event listeners with proper delegation
+    this.setupPanelEventListeners();
   }
 
-  setupContributionGraphObserver() {
-    const contributionGraph = this.findContributionGraph();
-    if (!contributionGraph) return;
+  setupPanelEventListeners() {
+    // Use event delegation on the panel
+    const panel = document.querySelector('[data-histofy_panel="true"]');
+    if (!panel) return;
 
-    this.mutationObserver = new MutationObserver((mutations) => {
-      let shouldReinject = false;
+    const panelClickHandler = (e) => {
+      e.stopPropagation();
       
-      mutations.forEach((mutation) => {
-        // Check for major structural changes
-        if (mutation.type === 'childList' && mutation.target.closest('.js-yearly-contributions')) {
-          // If nodes were added/removed, GitHub might have refreshed the graph
-          if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
-            shouldReinject = true;
-          }
-        }
-      });
-
-      if (shouldReinject && this.isActive) {
-        console.log('Histofy: Major graph change detected via mutation observer');
-        setTimeout(() => this.reapplyAfterRefresh(), 200);
-      }
-    });
-
-    this.mutationObserver.observe(contributionGraph, {
-      childList: true,
-      subtree: true,
-      attributes: false // Only watch for structural changes
-    });
-  }
-
-  setupOverlayEventHandlers(overlay) {
-    const selectModeBtn = overlay.querySelector('#histofy-select-mode');
-    const moveModeBtn = overlay.querySelector('#histofy-move-mode');
-    const clearBtn = overlay.querySelector('#histofy-clear-selection');
-    const storeBtn = overlay.querySelector('#histofy-store-selection');
-
-    selectModeBtn.addEventListener('click', () => {
-      this.setMode('select');
-      this.updateModeButtons(selectModeBtn, moveModeBtn);
-    });
-
-    moveModeBtn.addEventListener('click', () => {
-      this.setMode('move');
-      this.updateModeButtons(moveModeBtn, selectModeBtn);
-    });
-
-    clearBtn.addEventListener('click', () => {
-      this.clearSelection();
-    });
-
-    storeBtn.addEventListener('click', () => {
-      this.storeSelection();
-    });
-  }
-
-  activateOverlay(overlay) {
-    this.isActive = true;
-    this.dragMode = 'select';
-    this.setupContributionSquareListeners();
-    this.startGraphMonitoring(); // Start monitoring for changes
-    this.reapplyVisualChanges(); // Apply any existing changes
-    this.showNotification('Histofy overlay activated! Click tiles to set contribution levels.', 'success');
-  }
-
-  setupContributionSquareListeners() {
-    // Find all contribution squares
-    const squares = document.querySelectorAll(
-      '.ContributionCalendar-day, .js-calendar-graph-svg rect[data-date], .contrib-square'
-    );
-
-    // Create a new bound function for this setup cycle
-    this.boundHandleSquareClick = (e) => {
-      const square = e.currentTarget;
-      this.handleSquareClick(e, square);
-    };
-
-    squares.forEach(square => {
-      // Skip if already has our listener
-      if (square.hasAttribute('histofy-listener-attached')) {
+      const target = e.target;
+      
+      // Handle close button
+      if (target.hasAttribute('data-histofy-close') || target.closest('[data-histofy-close]')) {
+        console.log('Histofy: Close button clicked');
+        this.deactivate();
         return;
       }
       
-      // Mark as having our listener
-      square.setAttribute('histofy-listener-attached', 'true');
-      
-      // Add event listener with high priority
-      square.addEventListener('click', this.boundHandleSquareClick, { 
-        capture: true,
-        passive: false
-      });
-      
-      // Add visual feedback
-      square.style.cursor = 'pointer';
-      
-      // Add hover effect with unique event handlers
-      const handleMouseEnter = () => {
-        if (this.isActive) {
-          const originalOpacity = square.style.opacity;
-          const originalTransform = square.style.transform;
-          square.style.opacity = '0.8';
-          square.style.transform = 'scale(1.1)';
-          square.style.transition = 'all 0.2s ease';
-          // Store original values to restore later
-          square._originalOpacity = originalOpacity;
-          square._originalTransform = originalTransform;
-        }
-      };
-      
-      const handleMouseLeave = () => {
-        if (this.isActive) {
-          // Restore original values
-          square.style.opacity = square._originalOpacity || '';
-          square.style.transform = square._originalTransform || '';
-        }
-      };
-      
-      square.addEventListener('mouseenter', handleMouseEnter);
-      square.addEventListener('mouseleave', handleMouseLeave);
-      
-      // Store event handlers for cleanup
-      square._histofyMouseEnter = handleMouseEnter;
-      square._histofyMouseLeave = handleMouseLeave;
-    });
-
-    console.log(`Histofy: Set up listeners for ${squares.length} contribution squares`);
-  }
-
-  handleSquareClick(event, square) {
-    if (!this.isActive) return;
-    
-    // Stop all event propagation immediately
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    
-    const date = this.extractDateFromSquare(square);
-    if (!date) {
-      console.warn('Histofy: Could not extract date from square');
-      return;
-    }
-
-    // Get or initialize click count for this tile
-    const tileKey = `${date}_${square.dataset.level || '0'}`;
-    let clickCount = this.tileClickCounts.get(tileKey) || 0;
-    
-    // Handle rapid clicks on same tile
-    if (this.lastClickedTile === square) {
-      // Clear previous timeout
-      if (this.clickTimeout) {
-        clearTimeout(this.clickTimeout);
-      }
-      
-      // Increment click count
-      clickCount = (clickCount + 1) % 5; // Cycle through 0-4 (None to Very High)
-    } else {
-      // Different tile clicked, start from level 1
-      clickCount = 1;
-      this.lastClickedTile = square;
-    }
-    
-    // Update click count
-    this.tileClickCounts.set(tileKey, clickCount);
-    
-    // Apply the contribution level
-    this.toggleDateSelection(square, date, clickCount);
-    
-    // Set timeout to reset last clicked tile
-    this.clickTimeout = setTimeout(() => {
-      this.lastClickedTile = null;
-    }, 1000);
-    
-    // Return false to prevent any further event handling
-    return false;
-  }
-
-  extractDateFromSquare(square) {
-    // Try different methods to extract date
-    const dateAttr = square.getAttribute('data-date') ||
-                    square.getAttribute('data-testid') ||
-                    square.querySelector('title')?.textContent;
-    
-    if (dateAttr) {
-      // Handle different date formats
-      if (dateAttr.includes('contributions on')) {
-        const match = dateAttr.match(/(\d{4}-\d{2}-\d{2})/);
-        return match ? match[1] : null;
-      }
-      
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateAttr)) {
-        return dateAttr;
-      }
-    }
-    
-    // Fallback: try to find date in nearby elements
-    const titleElement = square.querySelector('title') || square.parentNode.querySelector('title');
-    if (titleElement) {
-      const match = titleElement.textContent.match(/(\d{4}-\d{2}-\d{2})/);
-      return match ? match[1] : null;
-    }
-    
-    return null;
-  }
-
-  toggleDateSelection(square, date, level) {
-    if (!date) return;
-    
-    const contributionLevel = this.contributionLevels[level] || this.contributionLevels[0];
-    
-    // Store the change data for persistence
-    const changeData = {
-      level: level,
-      name: contributionLevel.name,
-      color: contributionLevel.color,
-      commits: contributionLevel.commits,
-      date: date
-    };
-    
-    // Update visual appearance
-    square.style.fill = contributionLevel.color;
-    square.style.backgroundColor = contributionLevel.color;
-    
-    // Store contribution data and visual changes
-    this.tileContributions.set(date, {
-      ...changeData,
-      element: square
-    });
-    
-    // Store visual changes persistently
-    if (level > 0) {
-      this.visualChanges.set(date, changeData);
-      this.selectedDates.add(date);
-    } else {
-      this.visualChanges.delete(date);
-      this.selectedDates.delete(date);
-      // Reset to original appearance
-      square.style.fill = '';
-      square.style.backgroundColor = '';
-    }
-    
-    // Update tooltip
-    this.updateSquareTooltip(square, date, this.tileContributions.get(date));
-    
-    // Update UI
-    this.updateSelectedCount();
-    
-    // Show feedback
-    this.showNotification(
-      `${date}: ${contributionLevel.name} (${contributionLevel.commits} commits)`, 
-      'info'
-    );
-  }
-
-  updateSquareTooltip(square, date, contributionData) {
-    if (!contributionData) return;
-    
-    let tooltip = square.querySelector('title');
-    if (!tooltip) {
-      tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-      square.appendChild(tooltip);
-    }
-    
-    const originalText = tooltip.textContent.split('\n')[0];
-    tooltip.textContent = `${originalText}\nHistofy: ${contributionData.name} (${contributionData.commits} commits)`;
-  }
-
-  handleMoveOperation(square, targetDate, level) {
-    // Implementation for move mode
-    console.log('Histofy: Move operation not yet implemented');
-  }
-
-  setMode(mode) {
-    this.dragMode = mode;
-    console.log(`Histofy: Mode set to ${mode}`);
-  }
-
-  updateModeButtons(activeBtn, inactiveBtn) {
-    activeBtn.classList.add('active');
-    activeBtn.classList.remove('histofy-btn-secondary');
-    activeBtn.classList.add('histofy-btn-primary');
-    
-    inactiveBtn.classList.remove('active');
-    inactiveBtn.classList.remove('histofy-btn-primary');
-    inactiveBtn.classList.add('histofy-btn-secondary');
-  }
-
-  clearSelection() {
-    // Reset all tiles to original appearance
-    this.visualChanges.forEach((changeData, date) => {
-      const square = this.findSquareByDate(date);
-      if (square) {
-        square.style.fill = '';
-        square.style.backgroundColor = '';
+      // Handle action buttons
+      const actionButton = target.closest('[data-histofy-action]');
+      if (actionButton) {
+        const action = actionButton.getAttribute('data-histofy-action');
+        console.log('Histofy: Action button clicked:', action);
         
-        // Reset tooltip
-        const tooltip = square.querySelector('title');
-        if (tooltip) {
-          const lines = tooltip.textContent.split('\n');
-          tooltip.textContent = lines[0]; // Keep only original text
+        if (action === 'clear') {
+          this.clearAllSelections();
+        } else if (action === 'deactivate') {
+          this.deactivate();
         }
+        return;
       }
-    });
+    };
+
+    panel.addEventListener('click', panelClickHandler);
     
-    // Clear all data
-    this.selectedDates.clear();
-    this.tileContributions.clear();
-    this.tileClickCounts.clear();
-    this.visualChanges.clear(); // Clear persistent changes
-    this.lastClickedTile = null;
-    
-    if (this.clickTimeout) {
-      clearTimeout(this.clickTimeout);
-      this.clickTimeout = null;
-    }
-    
-    this.updateSelectedCount();
-    this.showNotification('Selection cleared', 'info');
+    // Store the handler for cleanup
+    panel._histofyClickHandler = panelClickHandler;
   }
 
-  updateSelectedCount() {
-    const countElement = document.querySelector('#histofy-selected-count');
+  updateInstructionPanel() {
+    const selectedCount = Object.keys(this.contributions).length;
+    const countElement = document.getElementById('histofy-selected-count');
     if (countElement) {
-      countElement.textContent = this.selectedDates.size;
+      countElement.textContent = selectedCount;
     }
   }
 
-  async storeSelection() {
-    if (this.selectedDates.size === 0) {
-      this.showNotification('No dates selected!', 'warning');
-      return;
-    }
-
-    const selectionData = {
-      type: 'date_selection',
-      dates: Array.from(this.selectedDates),
-      contributions: Object.fromEntries(this.tileContributions),
-      timestamp: new Date().toISOString(),
-      year: new Date().getFullYear()
-    };
-
-    try {
-      await this.addPendingChange(selectionData);
-      this.showNotification(`Stored ${this.selectedDates.size} selected dates!`, 'success');
-    } catch (error) {
-      console.error('Histofy: Failed to store selection:', error);
-      this.showNotification('Failed to store selection', 'error');
+  removeInstructionPanel() {
+    const panel = document.querySelector('[data-histofy-panel="true"]');
+    if (panel) {
+      // Remove event listener if it exists
+      if (panel._histofyClickHandler) {
+        panel.removeEventListener('click', panel._histofyClickHandler);
+      }
+      panel.remove();
     }
   }
 
-  async storeCurrentChanges() {
-    if (this.selectedDates.size === 0) {
-      this.showNotification('No dates selected to store!', 'warning');
-      return;
-    }
-
-    const selectedDatesArray = Array.from(this.selectedDates);
-    const contributionsData = {};
+  // Data management
+  clearAllSelections() {
+    console.log('Histofy: Clearing all selections');
     
-    // Collect contribution data for each selected date
-    selectedDatesArray.forEach(date => {
-      const contribution = this.selectedContributions.get(date);
-      if (contribution) {
-        contributionsData[date] = contribution;
+    // Reset all tiles to original colors
+    Object.keys(this.contributions).forEach(date => {
+      const tile = document.querySelector(`[data-date="${date}"]`);
+      if (tile) {
+        const originalColor = this.originalColors[date];
+        if (tile.hasAttribute('fill')) {
+          tile.setAttribute('fill', originalColor);
+        } else {
+          tile.style.backgroundColor = originalColor;
+        }
+        // Remove histofy-specific attributes
+        tile.removeAttribute('title');
+        tile.removeAttribute('data-histofy-title');
       }
     });
 
-    const changeData = {
-      type: 'date_selection',
-      dates: selectedDatesArray,
-      contributions: contributionsData,
-      timestamp: new Date().toISOString()
-    };
+    // Clear contributions
+    this.contributions = {};
+    this.updateInstructionPanel();
+    this.saveContributions();
+
+    // Clear pending changes for this user/year and update deployment button
+    this.clearPendingChangesForCurrentUser();
+
+    console.log('Histofy: All selections cleared');
+  }
+
+  async clearPendingChangesForCurrentUser() {
+    if (!window.histofyStorage) return;
 
     try {
-      if (window.histofyStorage) {
-        const result = await window.histofyStorage.addPendingChange(changeData);
+      const data = await window.histofyStorage.getData();
+      if (!data.pendingChanges) return;
+
+      // Remove all pending changes for current user/year
+      const originalCount = data.pendingChanges.length;
+      data.pendingChanges = data.pendingChanges.filter(change => 
+        !(change.type === 'date_selection' && 
+          change.username === this.username && 
+          change.year === this.currentYear)
+      );
+
+      const removedCount = originalCount - data.pendingChanges.length;
+      
+      await window.histofyStorage.saveData(data);
+      
+      console.log(`Histofy: Removed ${removedCount} pending changes for ${this.username} (${this.currentYear})`);
+      
+      // Update deploy button immediately
+      if (window.histofyDeployButton) {
+        setTimeout(() => {
+          window.histofyDeployButton.updatePendingCount();
+        }, 100);
+      }
+
+    } catch (error) {
+      console.error('Histofy: Failed to clear pending changes:', error);
+    }
+  }
+
+  // Storage management
+  async saveContributions() {
+    if (!this.username || !window.histofyStorage) return;
+
+    try {
+      const data = await window.histofyStorage.getData();
+      
+      if (!data.contributions) {
+        data.contributions = {};
+      }
+      if (!data.contributions[this.username]) {
+        data.contributions[this.username] = {};
+      }
+      
+      data.contributions[this.username][this.currentYear] = { ...this.contributions };
+      
+      await window.histofyStorage.saveData(data);
+      console.log(`Histofy: Saved contributions for ${this.username} (${this.currentYear})`);
+    } catch (error) {
+      console.error('Histofy: Failed to save contributions:', error);
+    }
+  }
+
+  async loadContributions() {
+    if (!this.username || !window.histofyStorage) return;
+
+    try {
+      const data = await window.histofyStorage.getData();
+      
+      if (data.contributions?.[this.username]?.[this.currentYear]) {
+        this.contributions = { ...data.contributions[this.username][this.currentYear] };
         
-        if (result === null) {
-          // Duplicate detected
-          this.showNotification(
-            `⚠️ These ${selectedDatesArray.length} dates are already stored! No duplicate added.`, 
-            'warning'
-          );
-        } else {
-          // Successfully added
-          this.showNotification(
-            `✅ Stored ${selectedDatesArray.length} selected dates for deployment!`, 
-            'success'
-          );
-        }
+        // Apply saved contributions to tiles
+        Object.entries(this.contributions).forEach(([date, contribution]) => {
+          const tile = document.querySelector(`[data-date="${date}"]`);
+          if (tile) {
+            this.updateTileAppearance(tile, date, contribution.level);
+          }
+        });
+        
+        this.updateInstructionPanel();
+        console.log(`Histofy: Loaded contributions for ${this.username} (${this.currentYear})`);
       }
     } catch (error) {
-      console.error('Histofy: Failed to store changes:', error);
-      this.showNotification('❌ Failed to store changes', 'error');
+      console.error('Histofy: Failed to load contributions:', error);
     }
   }
 
-  async addPendingChange(change) {
-    if (window.histofyStorage) {
-      await window.histofyStorage.addPendingChange(change);
-    } else {
-      // Fallback to direct storage
-      const data = await chrome.storage.local.get('histofy_data');
-      if (data.histofy_data) {
-        change.id = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        data.histofy_data.pendingChanges.push(change);
-        await chrome.storage.local.set({ histofy_data: data.histofy_data });
-      }
-    }
-  }
-
-  showNotification(message, type = 'info') {
-    // Remove any existing notifications
-    const existingNotifications = document.querySelectorAll('.histofy-overlay-notification');
-    existingNotifications.forEach(n => n.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = `histofy-overlay-notification histofy-notification-${type}`;
-    notification.textContent = message;
-    
-    // Style the notification
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196F3'};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 10001;
-      font-size: 14px;
-      max-width: 300px;
-      word-wrap: break-word;
-      animation: slideIn 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.remove();
-    }, 3000);
-  }
-
-  toggleOverlay(year = null) {
-    if (this.isActive) {
-      this.cleanupOverlays();
-      this.showNotification('Histofy overlay deactivated', 'info');
-    } else {
-      this.injectOverlay();
-    }
-  }
-
-  async saveSelectedDates() {
-    if (this.selectedDates.size === 0) {
-      this.showNotification('No dates selected', 'warning');
-      return;
-    }
+  async addToPendingChanges(date, level) {
+    if (!window.histofyStorage) return;
 
     try {
-      const dateArray = Array.from(this.selectedDates);
-      const contributions = this.getContributionLevels(dateArray);
+      // Get all currently selected dates and their levels
+      const selectedDates = Object.keys(this.contributions);
       
-      const changeData = {
+      if (selectedDates.length === 0) {
+        console.log('Histofy: No contributions to add to pending changes');
+        return;
+      }
+
+      // Create a comprehensive change entry that includes ALL selected dates
+      const change = {
         type: 'date_selection',
-        dates: dateArray,
-        contributions: contributions,
+        dates: selectedDates,
+        contributions: { ...this.contributions },
+        username: this.username,
         year: this.currentYear,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        id: `${this.username}_${this.currentYear}_batch_${Date.now()}`
       };
 
-      console.log('Histofy: Saving selected dates:', changeData);
-
-      if (window.histofyStorage) {
-        const result = await window.histofyStorage.addPendingChange(changeData);
-        
-        if (result === null) {
-          this.showNotification('⚠️ These dates are already selected!', 'warning');
-        } else {
-          this.showNotification(`✅ Saved ${dateArray.length} selected dates for deployment`, 'success');
-          console.log('Histofy: Successfully saved date selection:', result);
-          
-          // Trigger update of deploy button
-          setTimeout(() => {
-            if (window.histofyDeployButton) {
-              window.histofyDeployButton.updatePendingCount();
-            }
-          }, 100);
-        }
-      } else {
-        console.error('Histofy: Storage manager not available');
-        this.showNotification('❌ Storage manager not available', 'error');
+      // Get existing pending changes
+      const data = await window.histofyStorage.getData();
+      if (!data.pendingChanges) {
+        data.pendingChanges = [];
       }
+
+      // Remove any existing change for this same user/year combination
+      data.pendingChanges = data.pendingChanges.filter(existingChange => 
+        !(existingChange.type === 'date_selection' && 
+          existingChange.username === this.username && 
+          existingChange.year === this.currentYear)
+      );
+
+      // Add the new comprehensive change
+      data.pendingChanges.push(change);
+      console.log(`Histofy: Added pending changes for ${selectedDates.length} dates:`, selectedDates);
+
+      await window.histofyStorage.saveData(data);
+      
+      // Update deploy button count immediately
+      if (window.histofyDeployButton) {
+        setTimeout(() => {
+          window.histofyDeployButton.updatePendingCount();
+        }, 100);
+      }
+
     } catch (error) {
-      console.error('Histofy: Failed to save selected dates:', error);
-      this.showNotification('❌ Failed to save selections', 'error');
+      console.error('Histofy: Failed to add pending changes:', error);
     }
   }
 
-  // Methods to handle storage updates and cleanup
-  handleStorageUpdate(changes) {
-    // Reload selected dates when storage changes
-    this.loadSelectedDates();
+  // Prevent navigation events from deactivating the overlay
+  preventNavigationDeactivation() {
+    // Override any existing navigation handlers that might interfere
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    // Store original methods for restoration
+    if (!this._originalHistoryMethods) {
+      this._originalHistoryMethods = {
+        pushState: originalPushState,
+        replaceState: originalReplaceState
+      };
+      
+      // Override history methods to maintain activation
+      history.pushState = (...args) => {
+        console.log('Histofy: Navigation detected, maintaining activation');
+        originalPushState.apply(history, args);
+        
+        // Re-activate after navigation if we were active
+        if (this.isActive) {
+          setTimeout(() => {
+            this.setupContributionTiles();
+          }, 500);
+        }
+      };
+      
+      history.replaceState = (...args) => {
+        console.log('Histofy: Page replace detected, maintaining activation');
+        originalReplaceState.apply(history, args);
+        
+        // Re-activate after navigation if we were active
+        if (this.isActive) {
+          setTimeout(() => {
+            this.setupContributionTiles();
+          }, 500);
+        }
+      };
+    }
   }
 
-  clearPendingChanges() {
-    // Clear visual selections when pending changes are cleared
-    this.clearAllSelections();
-    this.showNotification('Pending changes cleared', 'info');
+  // Public API methods with better logging
+  getContributions() {
+    const contributions = { ...this.contributions };
+    console.log(`Histofy: Getting contributions - ${Object.keys(contributions).length} dates with modifications`);
+    return contributions;
+  }
+
+  getSelectedDates() {
+    const dates = Object.keys(this.contributions);
+    console.log(`Histofy: Getting selected dates - ${dates.length} dates selected`);
+    return dates;
+  }
+
+  getStats() {
+    const stats = {
+      total: Object.keys(this.contributions).length,
+      byLevel: {}
+    };
+
+    Object.values(this.contributions).forEach(contribution => {
+      const level = contribution.level;
+      stats.byLevel[level] = (stats.byLevel[level] || 0) + 1;
+    });
+
+    console.log('Histofy: Current stats:', stats);
+    return stats;
+  }
+
+  // Helper method to get contribution data formatted for deployment
+  getContributionDataForDeployment() {
+    const deploymentData = {
+      username: this.username,
+      year: this.currentYear,
+      contributions: {},
+      dates: []
+    };
+
+    // Format contributions for deployment
+    Object.entries(this.contributions).forEach(([date, contribution]) => {
+      deploymentData.contributions[date] = contribution;
+      deploymentData.dates.push(date);
+    });
+
+    deploymentData.totalDates = deploymentData.dates.length;
+    
+    console.log(`Histofy: Formatted deployment data for ${deploymentData.totalDates} dates`);
+    return deploymentData;
   }
 }
 
-// Initialize contribution graph overlay
-window.histofyGraphOverlay = new ContributionGraphOverlay();
+// Initialize overlay
+window.histofyOverlay = new ContributionGraphOverlay();

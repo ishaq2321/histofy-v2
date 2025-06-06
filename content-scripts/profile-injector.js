@@ -1,61 +1,190 @@
 // Profile page injector for Histofy
 class ProfileInjector {
   constructor() {
+    this.activateButton = null;
     this.isInjected = false;
-    this.mutationObserver = null;
-    this.currentYear = null;
+    this.currentYear = new Date().getFullYear();
     this.init();
   }
 
-  init() {
-    this.setupEventListeners();
+  // Enhanced initialization with retry logic
+  async init() {
+    console.log('Histofy: Profile injector initializing...');
+    
+    // Wait for page to be ready
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => {
+        document.addEventListener('DOMContentLoaded', resolve);
+      });
+    }
+
+    // Wait for GitHub's dynamic content with retries
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000 + (attempts * 500)));
+      
+      if (this.hasContributionGraph()) {
+        console.log(`Histofy: Contribution graph detected on attempt ${attempts + 1}`);
+        break;
+      }
+      
+      attempts++;
+      console.log(`Histofy: Waiting for contribution graph... attempt ${attempts}/${maxAttempts}`);
+    }
+
+    this.setupMutationObserver();
+    this.injectUI();
+    
+    // Notify that profile injector is ready
+    document.dispatchEvent(new CustomEvent('histofy-profile-ready', {
+      detail: { hasContributionGraph: this.hasContributionGraph() }
+    }));
+    
     console.log('Histofy: Profile injector initialized');
   }
 
-  setupEventListeners() {
-    document.addEventListener('histofy-page-change', (event) => {
-      const { page } = event.detail;
-      if (page === 'profile') {
-        setTimeout(() => this.injectProfileControls(), 500);
-      } else {
-        this.cleanup();
+  setupMutationObserver() {
+    // Watch for GitHub's dynamic content changes
+    const observer = new MutationObserver((mutations) => {
+      let shouldReinject = false;
+      
+      mutations.forEach(mutation => {
+        // Check if contribution graph area changed
+        if (mutation.target.closest?.('.js-yearly-contributions, .contrib-column, .ContributionCalendar')) {
+          shouldReinject = true;
+        }
+        
+        // Check if our injected elements were removed
+        if (mutation.removedNodes) {
+          mutation.removedNodes.forEach(node => {
+            if (node.nodeType === Node.ELEMENT_NODE && 
+                (node.classList?.contains('histofy-activate-section') || 
+                 node.querySelector?.('.histofy-activate-section'))) {
+              shouldReinject = true;
+            }
+          });
+        }
+      });
+      
+      if (shouldReinject) {
+        console.log('Histofy: Contribution area changed, re-injecting UI');
+        setTimeout(() => this.injectUI(), 500);
       }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
     });
   }
 
-  injectProfileControls() {
-    // Always cleanup any existing elements first to prevent duplicates
-    this.cleanup();
+  // Enhanced UI injection with better error handling
+  injectUI() {
+    try {
+      // Only inject on profile pages with contribution graphs
+      if (!this.isProfilePage() || !this.hasContributionGraph()) {
+        console.log('Histofy: Not a valid profile page for injection');
+        return;
+      }
 
-    const contributionGraph = this.findContributionSection();
-    if (!contributionGraph) {
-      console.log('Histofy: Contribution section not found');
+      // Prevent duplicate injection
+      if (document.querySelector('.histofy-activate-section')) {
+        console.log('Histofy: UI already injected, skipping');
+        return;
+      }
+
+      this.createActivateButton();
+      this.isInjected = true;
+      console.log('Histofy: UI injected successfully');
+      
+    } catch (error) {
+      console.error('Histofy: Failed to inject UI:', error);
+    }
+  }
+
+  isProfilePage() {
+    // Check if we're on a profile page
+    const profileIndicators = [
+      '.vcard-names', // Profile name section
+      '[itemtype="http://schema.org/Person"]', // Schema.org person
+      '.user-profile-nav', // Profile navigation
+      '.js-yearly-contributions' // Contribution section
+    ];
+
+    return profileIndicators.some(selector => document.querySelector(selector));
+  }
+
+  hasContributionGraph() {
+    const contributionSelectors = [
+      '.ContributionCalendar-grid',
+      '.js-calendar-graph-svg',
+      '[data-test-selector="contribution-graph"]',
+      '.contrib-column'
+    ];
+
+    return contributionSelectors.some(selector => document.querySelector(selector));
+  }
+
+  createActivateButton() {
+    // Find the best place to inject the button
+    const contributionSection = this.findContributionSection();
+    if (!contributionSection) {
+      console.log('Histofy: Could not find contribution section');
       return;
     }
 
-    // Extract current year from the page
-    this.currentYear = this.extractCurrentYear();
-    
-    this.createProfileHeader(contributionGraph);
-    this.createQuickActions(contributionGraph);
-    this.setupYearChangeObserver();
-    this.isInjected = true;
+    // Extract current year from URL or page
+    this.extractCurrentYear();
 
-    console.log(`Histofy: Profile controls injected successfully for year ${this.currentYear}`);
+    // Create activation section
+    const activateSection = document.createElement('div');
+    activateSection.className = 'histofy-activate-section';
+    activateSection.innerHTML = `
+      <div class="histofy-activate-container">
+        <div class="histofy-activate-header">
+          <h3>🎯 Histofy - GitHub History Modifier</h3>
+          <p>Click contribution tiles to cycle through 5 different contribution levels</p>
+        </div>
+        <div class="histofy-activate-actions">
+          <button class="histofy-activate-btn" id="histofy-activate-btn">
+            🚀 Activate Histofy (${this.currentYear})
+          </button>
+        </div>
+        <div class="histofy-activate-info">
+          <p>💡 <strong>How it works:</strong></p>
+          <p>• <strong>1st click:</strong> Low contributions (1-3 commits) - Darkest green</p>
+          <p>• <strong>2nd click:</strong> Medium contributions (4-9 commits) - Dark green</p>
+          <p>• <strong>3rd click:</strong> High contributions (10-19 commits) - Medium green</p>
+          <p>• <strong>4th click:</strong> Very high contributions (20+ commits) - Light green</p>
+          <p>• <strong>5th click:</strong> Back to no contributions (original state)</p>
+        </div>
+      </div>
+    `;
+
+    // Insert the activation section
+    contributionSection.insertBefore(activateSection, contributionSection.firstChild);
+
+    // Setup event listeners
+    this.setupActivateButton();
   }
 
   findContributionSection() {
+    // Try multiple selectors to find the contribution section
     const selectors = [
       '.js-yearly-contributions',
+      '.js-contribution-graph',
+      '.contrib-column',
       '.ContributionCalendar',
-      '[data-testid="contribution-graph"]',
-      '.contrib-footer'
+      '[data-test-selector="yearly-contribution-graph"]'
     ];
 
     for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (element) {
-        return element.closest('.BorderGrid-cell') || element.parentNode;
+      const section = document.querySelector(selector);
+      if (section) {
+        console.log(`Histofy: Found contribution section using selector: ${selector}`);
+        return section;
       }
     }
 
@@ -63,412 +192,262 @@ class ProfileInjector {
   }
 
   extractCurrentYear() {
-    // Try to extract year from contribution graph heading or URL
-    const yearElement = document.querySelector('.js-yearly-contributions h2');
-    if (yearElement) {
-      const match = yearElement.textContent.match(/(\d{4})/);
-      if (match) return match[1];
+    // Try to get year from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromParam = urlParams.get('from');
+    if (fromParam) {
+      const yearMatch = fromParam.match(/(\d{4})/);
+      if (yearMatch) {
+        this.currentYear = parseInt(yearMatch[1]);
+        return;
+      }
     }
 
-    // Fallback to current year
-    return new Date().getFullYear().toString();
+    // Try to get year from page elements
+    const yearElements = document.querySelectorAll('.float-left select option[selected], .float-left select option:first-child');
+    yearElements.forEach(element => {
+      const yearMatch = element.textContent.match(/(\d{4})/);
+      if (yearMatch) {
+        this.currentYear = parseInt(yearMatch[1]);
+      }
+    });
+
+    console.log(`Histofy: Current year detected as ${this.currentYear}`);
   }
 
-  setupYearChangeObserver() {
-    // Disconnect existing observer
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
+  setupActivateButton() {
+    const activateBtn = document.getElementById('histofy-activate-btn');
+    if (!activateBtn) return;
+
+    // Remove any existing event listeners
+    const newButton = activateBtn.cloneNode(true);
+    activateBtn.parentNode.replaceChild(newButton, activateBtn);
+
+    // Add new event listener with proper isolation
+    newButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      console.log('Histofy: Activate button event triggered');
+      this.handleActivateClick();
+    }, { capture: true, once: false });
+
+    console.log('Histofy: Activate button event listener attached');
+  }
+
+  handleActivateClick() {
+    console.log('Histofy: Activate button clicked');
+
+    // Temporarily disable the button to prevent double-clicks
+    const activateBtn = document.getElementById('histofy-activate-btn');
+    if (activateBtn) {
+      activateBtn.disabled = true;
+      activateBtn.textContent = '⏳ Activating...';
     }
 
-    // Find the contribution graph container to observe
-    const contributionContainer = document.querySelector('.js-yearly-contributions');
-    if (!contributionContainer) return;
+    // Add comprehensive checks before activation
+    setTimeout(async () => {
+      try {
+        // Step 1: Check if we're on the right page
+        if (!this.isValidActivationPage()) {
+          throw new Error('Not on a valid GitHub profile page');
+        }
 
-    // Create mutation observer to detect year changes
-    this.mutationObserver = new MutationObserver((mutations) => {
-      let shouldReinject = false;
-      
-      mutations.forEach((mutation) => {
-        // Check if the contribution graph content changed
-        if (mutation.type === 'childList' && mutation.target.closest('.js-yearly-contributions')) {
-          const newYear = this.extractCurrentYear();
-          if (newYear !== this.currentYear) {
-            shouldReinject = true;
+        // Step 2: Check if overlay is available
+        if (!window.histofyOverlay) {
+          console.error('Histofy: Overlay not available, attempting to reinitialize...');
+          
+          // Try to reinitialize the overlay
+          if (window.ContributionGraphOverlay) {
+            window.histofyOverlay = new ContributionGraphOverlay();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for initialization
+          } else {
+            throw new Error('Histofy overlay class not loaded');
           }
         }
-      });
 
-      if (shouldReinject) {
-        console.log('Histofy: Year change detected, re-injecting controls');
-        setTimeout(() => this.injectProfileControls(), 100);
+        // Step 3: Check if already active
+        if (window.histofyOverlay.isActive) {
+          this.showNotification('Histofy is already active!', 'warning');
+          this.updateActivateButton(true);
+          return;
+        }
+
+        // Step 4: Verify contribution graph exists
+        if (!this.hasValidContributionGraph()) {
+          throw new Error('No valid contribution graph found on this page');
+        }
+
+        // Step 5: Attempt activation
+        console.log('Histofy: Starting activation process...');
+        const success = window.histofyOverlay.activate();
+        
+        if (success) {
+          this.showNotification('Histofy activated! Click on contribution tiles to modify them.', 'success');
+          this.updateActivateButton(true);
+          
+          // Start monitoring for deactivation
+          this.startDeactivationMonitoring();
+          
+          console.log('Histofy: Activation successful');
+        } else {
+          throw new Error('Overlay activation returned false');
+        }
+
+      } catch (error) {
+        console.error('Histofy: Activation failed:', error);
+        this.showNotification(`Activation failed: ${error.message}`, 'error');
+        this.updateActivateButton(false);
+        
+        // Provide helpful troubleshooting message
+        this.showTroubleshootingInfo(error);
       }
-    });
-
-    // Start observing
-    this.mutationObserver.observe(contributionContainer, {
-      childList: true,
-      subtree: true
-    });
+    }, 200);
   }
 
-  createProfileHeader(container) {
-    const header = document.createElement('div');
-    header.className = 'histofy-profile-header';
-    header.innerHTML = `
-      <div class="histofy-profile-title">
-        <h2>🎯 Histofy Profile Controls (${this.currentYear})</h2>
-        <p>Manage your GitHub contribution history with precision</p>
-      </div>
-      <div class="histofy-profile-stats" id="histofy-profile-stats">
-        <div class="histofy-stat">
-          <span class="histofy-stat-number" id="histofy-pending-changes">0</span>
-          <span class="histofy-stat-label">Pending Changes</span>
-        </div>
-        <div class="histofy-stat">
-          <span class="histofy-stat-number" id="histofy-selected-dates">0</span>
-          <span class="histofy-stat-label">Selected Dates</span>
-        </div>
-        <div class="histofy-stat">
-          <span class="histofy-stat-number" id="histofy-total-contributions">-</span>
-          <span class="histofy-stat-label">Total Contributions</span>
-        </div>
-      </div>
-    `;
-
-    container.insertBefore(header, container.firstChild);
-    this.updateStats();
+  isValidActivationPage() {
+    // More comprehensive page validation
+    const url = window.location.href;
+    const isGitHub = url.includes('github.com');
+    const isProfile = this.isProfilePage();
+    const hasContributions = this.hasContributionGraph();
+    
+    console.log('Histofy: Page validation:', {
+      url,
+      isGitHub,
+      isProfile,
+      hasContributions
+    });
+    
+    return isGitHub && isProfile && hasContributions;
   }
 
-  createQuickActions(container) {
-    const actions = document.createElement('div');
-    actions.className = 'histofy-quick-actions';
-    actions.innerHTML = `
-      <div class="histofy-actions-section">
-        <h3>⚡ Quick Actions</h3>
-        <div class="histofy-actions-grid">
-          <button class="histofy-action-card" id="histofy-activate-selection">
-            <div class="histofy-action-icon">📅</div>
-            <div class="histofy-action-content">
-              <h4>Activate Histofy (${this.currentYear})</h4>
-              <p>Click on contribution squares to select dates for modification</p>
-            </div>
-          </button>
-          
-          <button class="histofy-action-card" id="histofy-generate-random">
-            <div class="histofy-action-icon">🎲</div>
-            <div class="histofy-action-content">
-              <h4>Generate Random (${this.currentYear})</h4>
-              <p>Create random contribution patterns for selected year</p>
-            </div>
-          </button>
-          
-          <button class="histofy-action-card" id="histofy-time-travel">
-            <div class="histofy-action-icon">⏰</div>
-            <div class="histofy-action-content">
-              <h4>Time Travel</h4>
-              <p>Move commits to past or future dates</p>
-            </div>
-          </button>
-          
-          <button class="histofy-action-card" id="histofy-pattern-maker">
-            <div class="histofy-action-icon">🎨</div>
-            <div class="histofy-action-content">
-              <h4>Pattern Maker</h4>
-              <p>Create custom contribution patterns and designs</p>
-            </div>
-          </button>
-        </div>
-      </div>
-      
-      <div class="histofy-intensity-section">
-        <h3>📊 Contribution Intensity</h3>
-        <div class="histofy-intensity-controls">
-          <div class="histofy-intensity-grid">
-            <button class="histofy-intensity-btn" data-commits="low" data-intensity="low">
-              <span class="histofy-intensity-preview histofy-preview-low-low"></span>
-              <span>Low/Low</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="low" data-intensity="medium">
-              <span class="histofy-intensity-preview histofy-preview-low-medium"></span>
-              <span>Low/Medium</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="low" data-intensity="high">
-              <span class="histofy-intensity-preview histofy-preview-low-high"></span>
-              <span>Low/High</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="medium" data-intensity="low">
-              <span class="histofy-intensity-preview histofy-preview-medium-low"></span>
-              <span>Medium/Low</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="medium" data-intensity="medium">
-              <span class="histofy-intensity-preview histofy-preview-medium-medium"></span>
-              <span>Medium/Medium</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="medium" data-intensity="high">
-              <span class="histofy-intensity-preview histofy-preview-medium-high"></span>
-              <span>Medium/High</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="high" data-intensity="low">
-              <span class="histofy-intensity-preview histofy-preview-high-low"></span>
-              <span>High/Low</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="high" data-intensity="medium">
-              <span class="histofy-intensity-preview histofy-preview-high-medium"></span>
-              <span>High/Medium</span>
-            </button>
-            <button class="histofy-intensity-btn" data-commits="high" data-intensity="high">
-              <span class="histofy-intensity-preview histofy-preview-high-high"></span>
-              <span>High/High</span>
-            </button>
-          </div>
-          <div class="histofy-intensity-info">
-            <p><strong>GitHub Contribution Levels (Commits per Day):</strong></p>
-            <p>• <strong>Light Green:</strong> 1-3 commits</p>
-            <p>• <strong>Medium Green:</strong> 4-8 commits</p>
-            <p>• <strong>Dark Green:</strong> 9-12 commits</p>
-            <p>• <strong>Darkest Green:</strong> 13+ commits</p>
-            <p><em>⚠️ Requirements: Associated email, default branch, up to 24h to appear</em></p>
-            <p><em>📖 <a href="https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/managing-contribution-settings-on-your-profile/why-are-my-contributions-not-showing-up-on-my-profile" target="_blank">Learn more about contribution counting</a></em></p>
-          </div>
-        </div>
-      </div>
-    `;
+  hasValidContributionGraph() {
+    const selectors = [
+      '.ContributionCalendar-grid',
+      '.js-calendar-graph-svg',
+      '[data-test-selector="contribution-graph"]',
+      '.contrib-column'
+    ];
 
-    // Find a good place to insert actions
-    const graphContainer = container.querySelector('.js-yearly-contributions') || container;
-    graphContainer.parentNode.insertBefore(actions, graphContainer.nextSibling);
-
-    this.setupActionHandlers(actions);
-  }
-
-  setupActionHandlers(actionsContainer) {
-    // Quick action buttons
-    const activateBtn = actionsContainer.querySelector('#histofy-activate-selection');
-    const generateBtn = actionsContainer.querySelector('#histofy-generate-random');
-    const timeTravelBtn = actionsContainer.querySelector('#histofy-time-travel');
-    const patternBtn = actionsContainer.querySelector('#histofy-pattern-maker');
-
-    activateBtn.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent('histofy-toggle-overlay', {
-        detail: { year: this.currentYear }
-      }));
-      this.showNotification(`Contribution graph overlay activated for ${this.currentYear}!`, 'success');
-    });
-
-    generateBtn.addEventListener('click', () => {
-      this.showRandomGenerationModal();
-    });
-
-    timeTravelBtn.addEventListener('click', () => {
-      this.showTimeTravelModal();
-    });
-
-    patternBtn.addEventListener('click', () => {
-      this.showNotification('🚧 Pattern Maker coming in Phase 2!', 'info');
-    });
-
-    // Intensity buttons
-    const intensityButtons = actionsContainer.querySelectorAll('.histofy-intensity-btn');
-    intensityButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const commits = btn.getAttribute('data-commits');
-        const intensity = btn.getAttribute('data-intensity');
-        this.selectIntensityPattern(commits, intensity);
-      });
-    });
-  }
-
-  showRandomGenerationModal() {
-    const modal = document.createElement('div');
-    modal.className = 'histofy-modal';
-    modal.innerHTML = `
-      <div class="histofy-modal-content">
-        <div class="histofy-modal-header">
-          <h3>🎲 Generate Random Contributions</h3>
-          <button class="histofy-modal-close">&times;</button>
-        </div>
-        <div class="histofy-modal-body">
-          <div class="histofy-form-group">
-            <label>Target Year:</label>
-            <select id="histofy-target-year" class="histofy-input">
-              ${this.generateYearOptions()}
-            </select>
-          </div>
-          <div class="histofy-form-group">
-            <label>Commit Frequency:</label>
-            <select id="histofy-commit-frequency" class="histofy-input">
-              <option value="low">Low (1-3 commits per day)</option>
-              <option value="medium">Medium (4-8 commits per day)</option>
-              <option value="high">High (9-15 commits per day)</option>
-            </select>
-          </div>
-          <div class="histofy-form-group">
-            <label>Contribution Intensity:</label>
-            <select id="histofy-contribution-intensity" class="histofy-input">
-              <option value="low">Low (1-25% days active)</option>
-              <option value="medium">Medium (26-60% days active)</option>
-              <option value="high">High (61-90% days active)</option>
-            </select>
-          </div>
-          <div class="histofy-form-group">
-            <label>Pattern:</label>
-            <select id="histofy-pattern" class="histofy-input">
-              <option value="random">Random</option>
-              <option value="weekdays">Weekdays Only</option>
-              <option value="weekends">Weekends Only</option>
-              <option value="consistent">Consistent Daily</option>
-            </select>
-          </div>
-        </div>
-        <div class="histofy-modal-footer">
-          <button class="histofy-btn histofy-btn-secondary histofy-modal-cancel">Cancel</button>
-          <button class="histofy-btn histofy-btn-primary" id="histofy-generate-commits">Generate</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    this.setupModalHandlers(modal);
-  }
-
-  showTimeTravelModal() {
-    const modal = document.createElement('div');
-    modal.className = 'histofy-modal';
-    modal.innerHTML = `
-      <div class="histofy-modal-content">
-        <div class="histofy-modal-header">
-          <h3>⏰ Time Travel Commits</h3>
-          <button class="histofy-modal-close">&times;</button>
-        </div>
-        <div class="histofy-modal-body">
-          <div class="histofy-form-group">
-            <label>Source Date Range:</label>
-            <input type="date" id="histofy-source-start" class="histofy-input">
-            <input type="date" id="histofy-source-end" class="histofy-input">
-          </div>
-          <div class="histofy-form-group">
-            <label>Target Date:</label>
-            <input type="date" id="histofy-target-date" class="histofy-input">
-          </div>
-          <div class="histofy-form-group">
-            <label>Operation:</label>
-            <select id="histofy-time-operation" class="histofy-input">
-              <option value="move">Move (relocate commits)</option>
-              <option value="copy">Copy (duplicate commits)</option>
-              <option value="shift">Shift (move by days offset)</option>
-            </select>
-          </div>
-        </div>
-        <div class="histofy-modal-footer">
-          <button class="histofy-btn histofy-btn-secondary histofy-modal-cancel">Cancel</button>
-          <button class="histofy-btn histofy-btn-primary" id="histofy-time-travel-execute">Execute</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    this.setupModalHandlers(modal);
-  }
-
-  setupModalHandlers(modal) {
-    const closeBtn = modal.querySelector('.histofy-modal-close');
-    const cancelBtn = modal.querySelector('.histofy-modal-cancel');
-
-    closeBtn.addEventListener('click', () => modal.remove());
-    cancelBtn.addEventListener('click', () => modal.remove());
-
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
-  }
-
-  generateYearOptions() {
-    const currentYear = new Date().getFullYear();
-    let options = '';
-    for (let year = currentYear; year >= currentYear - 10; year--) {
-      options += `<option value="${year}">${year}</option>`;
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const tiles = element.querySelectorAll('[data-date]');
+        console.log(`Histofy: Found contribution graph with ${tiles.length} tiles using selector: ${selector}`);
+        return tiles.length > 0;
+      }
     }
-    return options;
+
+    console.log('Histofy: No valid contribution graph found');
+    return false;
   }
 
-  async selectIntensityPattern(commits, intensity) {
-    const patternData = {
-      type: 'intensity_pattern',
-      commits: commits,
-      intensity: intensity,
-      timestamp: new Date().toISOString()
+  showTroubleshootingInfo(error) {
+    const troubleshootingMessages = {
+      'Not on a valid GitHub profile page': 'Please navigate to a GitHub user profile page (github.com/username)',
+      'Histofy overlay class not loaded': 'Extension scripts may not be loaded. Try refreshing the page.',
+      'No valid contribution graph found': 'This page doesn\'t have a contribution graph. Make sure you\'re on a profile page.',
+      'Overlay activation returned false': 'Could not find contribution tiles. The page might still be loading.'
     };
 
-    try {
-      if (window.histofyStorage) {
-        const result = await window.histofyStorage.addPendingChange(patternData);
-        
-        if (result === null) {
-          // Duplicate detected
-          this.showNotification(
-            `⚠️ ${commits}/${intensity} pattern already selected!`, 
-            'warning'
-          );
-        } else {
-          // Successfully added
-          this.showNotification(
-            `✅ Selected ${commits}/${intensity} pattern`, 
-            'success'
-          );
-          this.updateStats();
-        }
-      }
-    } catch (error) {
-      console.error('Histofy: Failed to select pattern:', error);
-      this.showNotification('❌ Failed to select pattern', 'error');
-    }
+    const helpMessage = troubleshootingMessages[error.message] || 'Unknown error occurred. Try refreshing the page.';
+    
+    setTimeout(() => {
+      this.showNotification(`💡 Tip: ${helpMessage}`, 'info');
+    }, 2000);
   }
 
-  async updateStats() {
-    if (window.histofyStorage) {
-      const stats = await window.histofyStorage.getStorageStats();
-      
-      const pendingElement = document.querySelector('#histofy-pending-changes');
-      if (pendingElement) pendingElement.textContent = stats.pendingChanges;
+  startDeactivationMonitoring() {
+    // Clear any existing monitoring
+    if (this.deactivationTimer) {
+      clearInterval(this.deactivationTimer);
     }
 
-    // Update total contributions from the page
-    const totalElement = document.querySelector('#histofy-total-contributions');
-    if (totalElement) {
-      const contributionText = document.querySelector('.js-yearly-contributions h2')?.textContent;
-      if (contributionText) {
-        const match = contributionText.match(/(\d+)/);
-        totalElement.textContent = match ? match[1] : '-';
+    // Monitor overlay state every 500ms
+    this.deactivationTimer = setInterval(() => {
+      if (window.histofyOverlay && !window.histofyOverlay.isActive) {
+        console.log('Histofy: Overlay deactivated, updating button');
+        this.updateActivateButton(false);
+        clearInterval(this.deactivationTimer);
+        this.deactivationTimer = null;
       }
+    }, 500);
+  }
+
+  updateActivateButton(isActive) {
+    const activateBtn = document.getElementById('histofy-activate-btn');
+    if (!activateBtn) return;
+
+    if (isActive) {
+      activateBtn.textContent = '✅ Histofy Active - Click tiles to edit';
+      activateBtn.disabled = true;
+      activateBtn.classList.add('histofy-btn-success');
+      activateBtn.style.opacity = '0.8';
+      activateBtn.style.cursor = 'not-allowed';
+    } else {
+      activateBtn.textContent = `🚀 Activate Histofy (${this.currentYear})`;
+      activateBtn.disabled = false;
+      activateBtn.classList.remove('histofy-btn-success');
+      activateBtn.style.opacity = '1';
+      activateBtn.style.cursor = 'pointer';
     }
   }
 
   showNotification(message, type = 'info') {
+    // Create notification element
     const notification = document.createElement('div');
     notification.className = `histofy-notification histofy-notification-${type}`;
     notification.textContent = message;
     
+    // Position notification
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '10001';
+    notification.style.padding = '12px 16px';
+    notification.style.borderRadius = '6px';
+    notification.style.fontSize = '14px';
+    notification.style.fontWeight = '500';
+    notification.style.maxWidth = '300px';
+    notification.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+
+    // Set colors based on type
+    const colors = {
+      success: { bg: '#1a7f37', color: 'white' },
+      error: { bg: '#d1242f', color: 'white' },
+      warning: { bg: '#fb8500', color: 'white' },
+      info: { bg: '#0969da', color: 'white' }
+    };
+
+    const colorConfig = colors[type] || colors.info;
+    notification.style.backgroundColor = colorConfig.bg;
+    notification.style.color = colorConfig.color;
+
     document.body.appendChild(notification);
-    
+
+    // Auto-remove notification
     setTimeout(() => {
       notification.remove();
-    }, 3000);
+    }, 4000);
   }
 
-  cleanup() {
-    // Disconnect mutation observer
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-      this.mutationObserver = null;
-    }
-
-    // Remove injected elements when leaving profile page
-    const injectedElements = document.querySelectorAll('.histofy-profile-header, .histofy-quick-actions');
-    injectedElements.forEach(el => el.remove());
-    
+  // Public methods
+  refreshUI() {
     this.isInjected = false;
-    this.currentYear = null;
+    const existingSection = document.querySelector('.histofy-activate-section');
+    if (existingSection) {
+      existingSection.remove();
+    }
+    this.injectUI();
+  }
+
+  deactivateOverlay() {
+    if (window.histofyOverlay) {
+      window.histofyOverlay.deactivate();
+      this.updateActivateButton(false);
+    }
   }
 }
 

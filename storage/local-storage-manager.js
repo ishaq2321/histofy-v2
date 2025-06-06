@@ -81,77 +81,98 @@ class LocalStorageManager {
   async addPendingChange(change) {
     try {
       const data = await this.getData();
-      if (!data) {
-        await this.ensureDataStructure();
-        return await this.addPendingChange(change);
-      }
-
-      // Check for duplicates
-      if (this.isDuplicateChange(change, data.pendingChanges)) {
-        console.log('Histofy: Duplicate change detected, skipping');
-        return null;
-      }
-
-      // Add unique ID and timestamp
-      const changeWithId = {
-        id: this.generateId(),
-        timestamp: new Date().toISOString(),
-        ...change
-      };
-
-      data.pendingChanges.push(changeWithId);
-      await this.saveData(data);
       
-      console.log('Histofy: Added pending change:', changeWithId.id);
-      return changeWithId;
+      if (!data.pendingChanges) {
+        data.pendingChanges = [];
+      }
+
+      // For date selections, ensure only one change per date per user/year
+      if (change.type === 'date_selection') {
+        // Remove any existing change for the same date/user/year
+        data.pendingChanges = data.pendingChanges.filter(existingChange => 
+          !(existingChange.type === 'date_selection' && 
+            existingChange.date === change.date && 
+            existingChange.username === change.username && 
+            existingChange.year === change.year)
+        );
+
+        // Only add if level > 0 (don't store "no contribution" selections)
+        if (change.level > 0) {
+          change.id = change.id || this.generateId();
+          data.pendingChanges.push(change);
+          console.log(`Storage: Added pending change for ${change.date} at level ${change.level}`);
+        } else {
+          console.log(`Storage: Removed pending change for ${change.date} (level 0)`);
+        }
+      } else {
+        // For other change types, check for duplicates normally
+        const isDuplicate = this.isDuplicateChange(change, data.pendingChanges);
+        
+        if (!isDuplicate) {
+          change.id = change.id || this.generateId();
+          data.pendingChanges.push(change);
+          console.log(`Storage: Added pending change: ${change.type}`);
+        } else {
+          console.log(`Storage: Skipped duplicate change: ${change.type}`);
+        }
+      }
+
+      await this.saveData(data);
+      return change.id;
     } catch (error) {
-      console.error('Histofy: Failed to add pending change:', error);
-      return null;
+      console.error('Storage: Failed to add pending change:', error);
+      throw error;
     }
   }
 
-  async getPendingChanges() {
+  // Enhanced method to get pending changes with better filtering
+  async getPendingChangesByUser(username, year) {
     try {
       const data = await this.getData();
-      return data?.pendingChanges || [];
+      
+      if (!data.pendingChanges) {
+        return [];
+      }
+
+      // Filter changes for specific user and year
+      const userChanges = data.pendingChanges.filter(change => 
+        change.username === username && 
+        change.year === year
+      );
+
+      console.log(`Storage: Found ${userChanges.length} pending changes for ${username} (${year})`);
+      return userChanges;
     } catch (error) {
-      console.error('Histofy: Failed to get pending changes:', error);
+      console.error('Storage: Failed to get pending changes by user:', error);
       return [];
     }
   }
 
-  async removePendingChange(changeId) {
+  // Clear pending changes for specific user/year
+  async clearPendingChangesForUser(username, year) {
     try {
       const data = await this.getData();
-      if (!data) return false;
-
-      const initialLength = data.pendingChanges.length;
-      data.pendingChanges = data.pendingChanges.filter(change => change.id !== changeId);
       
-      if (data.pendingChanges.length < initialLength) {
-        await this.saveData(data);
-        console.log('Histofy: Removed pending change:', changeId);
-        return true;
+      if (!data.pendingChanges) {
+        return 0;
       }
-      return false;
-    } catch (error) {
-      console.error('Histofy: Failed to remove pending change:', error);
-      return false;
-    }
-  }
 
-  async clearPendingChanges() {
-    try {
-      const data = await this.getData();
-      if (!data) return false;
+      const originalCount = data.pendingChanges.length;
+      
+      // Remove changes for specific user/year
+      data.pendingChanges = data.pendingChanges.filter(change => 
+        !(change.username === username && change.year === year)
+      );
 
-      data.pendingChanges = [];
+      const removedCount = originalCount - data.pendingChanges.length;
+      
       await this.saveData(data);
-      console.log('Histofy: Cleared all pending changes');
-      return true;
+      
+      console.log(`Storage: Cleared ${removedCount} pending changes for ${username} (${year})`);
+      return removedCount;
     } catch (error) {
-      console.error('Histofy: Failed to clear pending changes:', error);
-      return false;
+      console.error('Storage: Failed to clear pending changes for user:', error);
+      return 0;
     }
   }
 
@@ -177,20 +198,13 @@ class LocalStorageManager {
     });
   }
 
-  // Check if date selections are duplicate
+  // Check if date selections are duplicate (enhanced)
   isDuplicateDateSelection(newChange, existingChange) {
-    if (!newChange.dates || !existingChange.dates) return false;
-    
-    const newDates = new Set(newChange.dates);
-    const existingDates = new Set(existingChange.dates);
-    
-    // Check if there's any overlap
-    for (const date of newDates) {
-      if (existingDates.has(date)) {
-        return true;
-      }
-    }
-    return false;
+    return existingChange.type === 'date_selection' &&
+           existingChange.date === newChange.date &&
+           existingChange.username === newChange.username &&
+           existingChange.year === newChange.year;
+           // Note: We don't check level because we want to replace with new level
   }
 
   // Check if move commits operations are duplicate
@@ -316,6 +330,44 @@ class LocalStorageManager {
         totalModifications: 0,
         successfulDeployments: 0,
         failedDeployments: 0
+      };
+    }
+  }
+
+  // Get deployment statistics
+  async getDeploymentStats() {
+    try {
+      const data = await this.getData();
+      
+      const stats = {
+        totalPending: data.pendingChanges?.length || 0,
+        pendingByType: {},
+        pendingByUser: {},
+        totalCompleted: data.statistics?.successfulDeployments || 0,
+        totalFailed: data.statistics?.failedDeployments || 0
+      };
+
+      // Group pending changes by type and user
+      if (data.pendingChanges) {
+        data.pendingChanges.forEach(change => {
+          // By type
+          stats.pendingByType[change.type] = (stats.pendingByType[change.type] || 0) + 1;
+          
+          // By user
+          const userKey = `${change.username}_${change.year}`;
+          stats.pendingByUser[userKey] = (stats.pendingByUser[userKey] || 0) + 1;
+        });
+      }
+
+      return stats;
+    } catch (error) {
+      console.error('Storage: Failed to get deployment stats:', error);
+      return {
+        totalPending: 0,
+        pendingByType: {},
+        pendingByUser: {},
+        totalCompleted: 0,
+        totalFailed: 0
       };
     }
   }

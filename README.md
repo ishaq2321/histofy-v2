@@ -8,17 +8,15 @@ Histofy is a powerful Chrome/Edge extension that allows you to modify your GitHu
 
 ### 🎯 Core Functionality
 - **Click-to-Cycle**: Click any contribution tile to cycle through 5 levels:
-  1. **1st click**: No contributions (clear)
-  2. **2nd click**: Low contributions (dark green)
-  3. **3rd click**: Medium contributions (medium green) 
-  4. **4th click**: High contributions (bright green)
-  5. **5th click**: Very high contributions (brightest green)
-  6. **6th click**: Back to clear (cycles around)
+  1. **1st click**: Low contributions (1-3 commits) - Darkest green (#216e39)
+  2. **2nd click**: Medium contributions (4-9 commits) - Dark green (#30a14e)
+  3. **3rd click**: High contributions (10-19 commits) - Medium green (#40c463)
+  4. **4th click**: Very high contributions (20+ commits) - Lightest green (#9be9a8)
+  5. **5th click**: Back to no contributions (clear) - No color (#ebedf0)
 
 ### 🔧 Advanced Features
 - **Persistent Storage**: Your modifications are automatically saved per user/year
 - **Year Navigation**: Works seamlessly when switching between different years
-- **Keyboard Shortcuts**: Press `Escape` to clear all selections
 - **Visual Feedback**: Hover previews and color-coded instruction panel
 - **Duplicate Button Prevention**: Smart detection prevents multiple "Activate" buttons
 
@@ -74,20 +72,17 @@ Histofy is a powerful Chrome/Edge extension that allows you to modify your GitHu
    - Watch the color change and counter update in real-time
    - Use the instruction panel to understand the color coding
 
-### Advanced Usage
+### GitHub Contribution Levels (CORRECTED)
 
-#### Keyboard Shortcuts
-- **`Escape`**: Clear all selected tiles and reset to original state
+Based on GitHub's official contribution intensity algorithm:
 
-#### Storage Management
-- Modifications are automatically saved per user and year
-- Switch between years to see your saved modifications
-- Clear data using the extension popup or browser storage settings
+- **🔲 None (0 commits)**: No color (#ebedf0)
+- **🟢 Low (1-3 commits)**: Darkest green (#216e39) - Most saturated  
+- **🟢 Medium (4-9 commits)**: Dark green (#30a14e)
+- **🟢 High (10-19 commits)**: Medium green (#40c463)
+- **🟢 Very High (20+ commits)**: Lightest green (#9be9a8) - Least saturated
 
-#### Troubleshooting
-- If the button doesn't appear, refresh the page
-- Check browser console for "Histofy:" debug messages
-- Use the test page (`test-page.html`) to verify functionality
+**Important Note:** GitHub uses an inverse color intensity system where fewer commits result in darker (more saturated) greens, and more commits result in lighter (less saturated) greens. This is opposite to most visualization systems but is GitHub's established design pattern.
 
 ## 🛠️ Development
 

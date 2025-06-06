@@ -8,7 +8,8 @@ class GitHubDetector {
   }
 
   init() {
-    this.detectPage();
+    console.log('Histofy: GitHub detector initializing...');
+    this.detectCurrentPage();
     this.setupNavigationListener();
     this.setupMessageListener();
     console.log('Histofy: GitHub detector initialized');
@@ -103,88 +104,108 @@ class GitHubDetector {
     }
   }
 
-  detectPage() {
+  detectCurrentPage() {
     const url = window.location.href;
     const pathname = window.location.pathname;
     
-    // Reset current state
-    this.currentPage = null;
-    this.username = null;
-    this.repository = null;
-
-    // Profile page detection
-    if (this.isProfilePage(pathname)) {
-      this.currentPage = 'profile';
-      this.username = this.extractUsername(pathname);
-      this.notifyPageChange();
-      return;
-    }
-
-    // Repository page detection
-    if (this.isRepositoryPage(pathname)) {
-      this.currentPage = 'repository';
-      const repoInfo = this.extractRepositoryInfo(pathname);
-      this.username = repoInfo.username;
-      this.repository = repoInfo.repository;
-      this.notifyPageChange();
-      return;
-    }
-
-    // Commit page detection
-    if (this.isCommitPage(pathname)) {
-      this.currentPage = 'commit';
-      const repoInfo = this.extractRepositoryInfo(pathname);
-      this.username = repoInfo.username;
-      this.repository = repoInfo.repository;
-      this.notifyPageChange();
-      return;
-    }
-
-    console.log('Histofy: Not on a supported GitHub page');
-  }
-
-  isProfilePage(pathname) {
-    // Matches: /username or /username?tab=overview
-    const profileRegex = /^\/([^\/]+)(\?.*)?$/;
-    const match = pathname.match(profileRegex);
+    // Parse GitHub URL structure
+    const pathParts = pathname.split('/').filter(part => part.length > 0);
     
-    if (match) {
-      // Exclude known GitHub paths that aren't profiles
-      const excludedPaths = [
-        'explore', 'marketplace', 'topics', 'trending', 'collections',
-        'events', 'github', 'about', 'contact', 'pricing', 'team',
-        'enterprise', 'features', 'security', 'customer-stories',
-        'sponsors', 'readme', 'site', 'business'
-      ];
+    let pageInfo = {
+      url: url,
+      pathname: pathname,
+      isGitHub: url.includes('github.com'),
+      page: 'unknown',
+      username: null,
+      repository: null,
+      year: this.extractYear()
+    };
+
+    if (!pageInfo.isGitHub) {
+      this.currentPage = pageInfo;
+      return pageInfo;
+    }
+
+    // Detect page type based on URL structure
+    if (pathParts.length === 0) {
+      // github.com
+      pageInfo.page = 'home';
+    } else if (pathParts.length === 1) {
+      // github.com/username
+      pageInfo.page = 'profile';
+      pageInfo.username = pathParts[0];
+    } else if (pathParts.length === 2) {
+      // github.com/username/repository
+      pageInfo.page = 'repository';
+      pageInfo.username = pathParts[0];
+      pageInfo.repository = pathParts[1];
+    } else if (pathParts.length >= 3) {
+      // github.com/username/repository/...
+      pageInfo.username = pathParts[0];
+      pageInfo.repository = pathParts[1];
       
-      return !excludedPaths.includes(match[1].toLowerCase());
+      if (pathParts[2] === 'commit' || pathParts[2] === 'commits') {
+        pageInfo.page = 'commit';
+      } else if (pathParts[2] === 'pull' || pathParts[2] === 'pulls') {
+        pageInfo.page = 'pulls';
+      } else if (pathParts[2] === 'issues') {
+        pageInfo.page = 'issues';
+      } else if (pathParts[2] === 'actions') {
+        pageInfo.page = 'actions';
+      } else if (pathParts[2] === 'settings') {
+        pageInfo.page = 'settings';
+      } else {
+        pageInfo.page = 'repository';
+      }
     }
+
+    // Additional checks for specific page types
+    if (pageInfo.page === 'profile') {
+      // Verify this is actually a profile page
+      const hasContributionGraph = document.querySelector('.ContributionCalendar, .js-yearly-contributions, .contrib-column');
+      if (!hasContributionGraph) {
+        pageInfo.page = 'unknown';
+      }
+    }
+
+    this.currentPage = pageInfo;
+    console.log('Histofy: Detected page info:', pageInfo);
     
-    return false;
+    return pageInfo;
   }
 
-  isRepositoryPage(pathname) {
-    // Matches: /username/repo or /username/repo/anything
-    const repoRegex = /^\/([^\/]+)\/([^\/]+)/;
-    return repoRegex.test(pathname);
-  }
+  extractYear() {
+    // Try URL parameters first
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromParam = urlParams.get('from');
+    if (fromParam) {
+      const yearMatch = fromParam.match(/(\d{4})/);
+      if (yearMatch) {
+        return parseInt(yearMatch[1]);
+      }
+    }
 
-  isCommitPage(pathname) {
-    // Matches: /username/repo/commit/hash or /username/repo/commits
-    return pathname.includes('/commit') && this.isRepositoryPage(pathname);
-  }
+    // Try page elements
+    const yearSelectors = [
+      '.js-year-link',
+      '.js-selected-year',
+      '[data-current-year]',
+      '.UnderlineNav-item[aria-current="page"]'
+    ];
 
-  extractUsername(pathname) {
-    const match = pathname.match(/^\/([^\/]+)/);
-    return match ? match[1] : null;
-  }
+    for (const selector of yearSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const text = element.textContent || element.getAttribute('data-current-year');
+        const yearMatch = text.match(/(\d{4})/);
+        if (yearMatch) {
+          return parseInt(yearMatch[1]);
+        }
+      }
+    }
 
-  extractRepositoryInfo(pathname) {
-    const match = pathname.match(/^\/([^\/]+)\/([^\/]+)/);
-    return match ? {
-      username: match[1],
-      repository: match[2]
-    } : { username: null, repository: null };
+    // Default to current year
+    return new Date().getFullYear();
   }
 
   setupNavigationListener() {
@@ -206,6 +227,14 @@ class GitHubDetector {
     // Also listen for popstate (back/forward navigation)
     window.addEventListener('popstate', () => {
       setTimeout(() => this.detectPage(), 100);
+    });
+
+    // Listen for GitHub's turbo navigation
+    document.addEventListener('turbo:load', () => {
+      setTimeout(() => {
+        this.detectCurrentPage();
+        this.broadcastPageChange();
+      }, 500);
     });
   }
 
@@ -230,6 +259,15 @@ class GitHubDetector {
     }
   }
 
+  broadcastPageChange() {
+    // Notify other components about page changes
+    document.dispatchEvent(new CustomEvent('histofy-page-change', {
+      detail: this.currentPage
+    }));
+
+    console.log('Histofy: Broadcasted page change:', this.currentPage);
+  }
+
   getCurrentPageInfo() {
     return {
       page: this.currentPage,
@@ -239,16 +277,49 @@ class GitHubDetector {
     };
   }
 
-  isContributionGraphVisible() {
-    return document.querySelector('.js-yearly-contributions') !== null ||
-           document.querySelector('.ContributionCalendar') !== null;
+  isProfilePage() {
+    return this.currentPage?.page === 'profile';
   }
 
-  isCommitListVisible() {
-    return document.querySelector('.commit-group') !== null ||
-           document.querySelector('[data-testid="commit-row"]') !== null;
+  isRepositoryPage() {
+    return this.currentPage?.page === 'repository';
+  }
+
+  isCommitPage(pathname) {
+    // Matches: /username/repo/commit/hash or /username/repo/commits
+    return pathname.includes('/commit') && this.isRepositoryPage(pathname);
+  }
+
+  hasContributionGraph() {
+    const selectors = [
+      '.ContributionCalendar-grid',
+      '.js-calendar-graph-svg',
+      '[data-test-selector="contribution-graph"]',
+      '.contrib-column',
+      '.js-yearly-contributions'
+    ];
+
+    return selectors.some(selector => document.querySelector(selector));
+  }
+
+  getDebugInfo() {
+    return {
+      currentPageInfo: this.currentPage,
+      contributionGraphExists: this.hasContributionGraph(),
+      contributionTiles: document.querySelectorAll('[data-date]').length,
+      url: window.location.href,
+      pathname: window.location.pathname,
+      timestamp: new Date().toISOString()
+    };
   }
 }
 
 // Initialize detector
 window.histofyDetector = new GitHubDetector();
+
+// Make debug info available globally
+window.histofyDebug = () => {
+  const info = window.histofyDetector.getDebugInfo();
+  console.table(info);
+  return info;
+};

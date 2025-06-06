@@ -1,733 +1,491 @@
-/* Histofy UI Styles - Dark Theme */
+/* Histofy UI Styles */
 
-/* Global Variables */
+/* CSS Variables */
 :root {
-  --histofy-primary: #58a6ff;
-  --histofy-primary-hover: #388bfd;
-  --histofy-secondary: #f85149;
-  --histofy-success: #3fb950;
-  --histofy-warning: #d29922;
-  --histofy-danger: #f85149;
-  --histofy-bg-main: #0d1117;
-  --histofy-bg-secondary: #161b22;
-  --histofy-bg-tertiary: #21262d;
-  --histofy-bg-card: #1c2128;
-  --histofy-border: #30363d;
-  --histofy-border-muted: #21262d;
-  --histofy-text: #f0f6fc;
-  --histofy-text-secondary: #8b949e;
-  --histofy-text-muted: #656d76;
-  --histofy-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --histofy-shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.6);
-  --histofy-radius: 8px;
-  --histofy-radius-lg: 12px;
+  --histofy-primary: #0969da;
+  --histofy-secondary: #656d76;
+  --histofy-success: #1a7f37;
+  --histofy-warning: #d1242f;
+  --histofy-bg: #ffffff;
+  --histofy-bg-secondary: #f6f8fa;
+  --histofy-border: #d0d7de;
+  --histofy-text: #1f2328;
+  --histofy-text-secondary: #656d76;
+  --histofy-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --histofy-radius: 6px;
   --histofy-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
 }
 
-/* Deploy Button - Modern Design */
-.histofy-deploy-button {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --histofy-bg: #0d1117;
+    --histofy-bg-secondary: #161b22;
+    --histofy-border: #30363d;
+    --histofy-text: #f0f6fc;
+    --histofy-text-secondary: #8b949e;
+  }
+}
+
+/* Base styles */
+.histofy-activate-section {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--histofy-bg-secondary);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
   font-family: var(--histofy-font);
 }
 
-.histofy-deploy-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, var(--histofy-primary) 0%, #4c9aff 100%);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--histofy-shadow);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.histofy-activate-container {
+  max-width: 100%;
 }
 
-.histofy-deploy-btn:hover {
-  background: linear-gradient(135deg, var(--histofy-primary-hover) 0%, #3182ce 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 20px 40px rgba(88, 166, 255, 0.4);
-}
-
-.histofy-deploy-btn:active {
-  transform: translateY(-1px);
-}
-
-.histofy-deploy-btn:disabled {
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: var(--histofy-shadow);
-}
-
-.histofy-pending-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: linear-gradient(135deg, var(--histofy-danger) 0%, #dc2626 100%);
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 50px;
-  min-width: 20px;
-  text-align: center;
-  display: none;
-  box-shadow: 0 4px 8px rgba(248, 81, 73, 0.3);
-}
-
-/* Deploy Panel - Modern Dark Design */
-.histofy-deploy-panel {
-  position: absolute;
-  bottom: 70px;
-  right: 0;
-  width: 420px;
-  max-height: 650px;
-  background: var(--histofy-bg-secondary);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius-lg);
-  box-shadow: var(--histofy-shadow-lg);
-  overflow: hidden;
-  display: none;
-  backdrop-filter: blur(16px);
-}
-
-.histofy-deploy-header {
-  background: linear-gradient(135deg, var(--histofy-bg-tertiary) 0%, var(--histofy-bg-card) 100%);
-  padding: 20px;
-  border-bottom: 1px solid var(--histofy-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.histofy-deploy-header h3 {
-  margin: 0;
+.histofy-activate-header h3 {
+  margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--histofy-text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
-.histofy-close-panel {
-  background: var(--histofy-bg-card);
-  border: 1px solid var(--histofy-border);
-  color: var(--histofy-text-secondary);
-  padding: 8px 10px;
-  border-radius: var(--histofy-radius);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 16px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.histofy-close-panel:hover {
-  background: var(--histofy-bg-tertiary);
-  color: var(--histofy-text);
-  transform: scale(1.05);
-}
-
-.histofy-deploy-content {
-  padding: 24px;
-  max-height: 550px;
-  overflow-y: auto;
-  background: var(--histofy-bg-secondary);
-}
-
-/* Authentication Section - Simplified */
-.histofy-auth-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: var(--histofy-bg-card);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-auth-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.histofy-auth-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: var(--histofy-bg-tertiary);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-auth-success {
-  color: var(--histofy-text);
-  font-weight: 500;
+.histofy-activate-header p {
+  margin: 0 0 16px 0;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-auth-success::before {
-  content: "✅";
-  font-size: 14px;
-}
-
-.histofy-auth-help {
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--histofy-bg-tertiary);
-  border-radius: var(--histofy-radius);
-  border-left: 3px solid var(--histofy-primary);
-}
-
-.histofy-auth-help p {
-  margin: 8px 0;
-  font-size: 12px;
   color: var(--histofy-text-secondary);
-  line-height: 1.5;
 }
 
-.histofy-auth-help a {
-  color: var(--histofy-primary);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.histofy-auth-help a:hover {
-  text-decoration: underline;
-}
-
-.histofy-auth-help code {
-  background: var(--histofy-bg-main);
-  color: var(--histofy-primary);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
-}
-
-/* Repository Selection */
-.histofy-repository-section {
-  margin: 24px 0;
-  padding: 20px;
-  background: var(--histofy-bg-card);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-repository-section h4 {
-  margin: 0 0 18px 0;
-  color: var(--histofy-text);
-  font-size: 15px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-repo-options {
-  margin-bottom: 18px;
-}
-
-.histofy-repo-option {
+.histofy-activate-actions {
   margin-bottom: 12px;
 }
 
-.histofy-radio-label {
-  display: flex;
-  align-items: flex-start;
-  cursor: pointer;
-  padding: 16px;
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  background: var(--histofy-bg-tertiary);
-  transition: all 0.3s ease;
-}
-
-.histofy-radio-label:hover {
-  border-color: var(--histofy-primary);
-  background: var(--histofy-bg-main);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(88, 166, 255, 0.1);
-}
-
-.histofy-radio-label input[type="radio"] {
-  display: none;
-}
-
-.histofy-radio-custom {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--histofy-border);
-  border-radius: 50%;
-  margin-right: 14px;
-  margin-top: 2px;
-  position: relative;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-  background: var(--histofy-bg-main);
-}
-
-.histofy-radio-label input[type="radio"]:checked + .histofy-radio-custom {
-  border-color: var(--histofy-primary);
+.histofy-activate-btn {
   background: var(--histofy-primary);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
-}
-
-.histofy-radio-label input[type="radio"]:checked + .histofy-radio-custom::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: white;
-}
-
-.histofy-repo-details strong {
-  display: block;
-  color: var(--histofy-text);
+  color: white;
+  border: 1px solid var(--histofy-primary);
+  border-radius: var(--histofy-radius);
+  padding: 10px 16px;
   font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.histofy-repo-details p {
-  margin: 0;
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.histofy-repo-selector {
-  margin: 18px 0;
-  padding: 16px;
-  background: var(--histofy-bg-tertiary);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-}
-
-.histofy-repo-selector label {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--histofy-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.histofy-info-card {
-  padding: 16px;
-  background: var(--histofy-bg-tertiary);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  margin-top: 12px;
-}
-
-.histofy-info-card h5 {
-  margin: 0 0 12px 0;
-  color: var(--histofy-text);
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.histofy-info-card ul {
-  margin: 0;
-  padding-left: 20px;
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.histofy-info-card li {
-  margin-bottom: 6px;
-}
-
-/* Enhanced Input Styles */
-.histofy-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--histofy-bg-main);
-  color: var(--histofy-text);
-  transition: all 0.2s;
-}
-
-.histofy-input:focus {
-  outline: none;
-  border-color: var(--histofy-primary);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-  background: var(--histofy-bg-tertiary);
-}
-
-.histofy-input::placeholder {
-  color: var(--histofy-text-muted);
-}
-
-/* Enhanced Button Styles */
-.histofy-btn {
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  padding: 10px 18px;
-  font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
+}
+
+.histofy-activate-btn:hover:not(:disabled) {
+  background: #0860ca;
+  border-color: #0860ca;
+  transform: translateY(-1px);
+  box-shadow: var(--histofy-shadow);
+}
+
+.histofy-activate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.histofy-btn-success {
+  background: var(--histofy-success) !important;
+  border-color: var(--histofy-success) !important;
+}
+
+.histofy-activate-info {
+  font-size: 13px;
+  color: var(--histofy-text-secondary);
+  line-height: 1.4;
+}
+
+.histofy-activate-info p {
+  margin-bottom: 6px;
+}
+
+.histofy-activate-info p:last-child {
+  margin-bottom: 0;
+}
+
+.histofy-activate-info kbd {
+  background: var(--histofy-border);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  border: 1px solid var(--histofy-border);
+}
+
+/* Instruction Panel */
+.histofy-instruction-panel {
+  background: var(--histofy-bg);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: var(--histofy-font);
+  user-select: none;
+  
+  /* Fixed positioning and dimensions */
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 350px;
+  max-width: 90vw;
+  max-height: 80vh;
+  z-index: 10000;
+  overflow-y: auto;
+}
+
+.histofy-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--histofy-border);
+  background: var(--histofy-bg-secondary);
+}
+
+.histofy-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--histofy-text);
+}
+
+.histofy-panel-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--histofy-text-secondary);
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10001;
+}
+
+.histofy-panel-close:hover {
+  background: var(--histofy-border);
+  color: var(--histofy-text);
+  transform: scale(1.1);
+}
+
+.histofy-panel-close:active {
+  transform: scale(0.95);
+  background: var(--histofy-text-secondary);
+  color: var(--histofy-bg);
+}
+
+.histofy-panel-content {
+  padding: 20px;
+}
+
+.histofy-instructions {
+  margin-bottom: 20px;
+}
+
+.histofy-instructions p {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--histofy-text);
+}
+
+.histofy-level-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+  border: 1px solid var(--histofy-border);
+}
+
+.histofy-level-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--histofy-text);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.histofy-level-item:hover {
+  background: var(--histofy-bg);
+}
+
+.histofy-level-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--histofy-border);
+  flex-shrink: 0;
+}
+
+.histofy-click-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+  border-left: 4px solid var(--histofy-primary);
+}
+
+.histofy-click-info h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--histofy-primary);
+}
+
+.histofy-click-info ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.histofy-click-info li {
+  margin-bottom: 4px;
+  color: var(--histofy-text);
+}
+
+.histofy-click-info li:last-child {
+  margin-bottom: 0;
+}
+
+.histofy-level-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.histofy-level-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--histofy-text);
+}
+
+.histofy-level-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--histofy-border);
+  flex-shrink: 0;
+}
+
+.histofy-stats {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--histofy-bg-secondary);
+  border-radius: var(--histofy-radius);
+}
+
+.histofy-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.histofy-stat-label {
+  color: var(--histofy-text-secondary);
+  font-weight: 500;
+}
+
+.histofy-stat-value {
+  color: var(--histofy-text);
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.histofy-panel-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.histofy-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  background: var(--histofy-bg);
+  color: var(--histofy-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
+  position: relative;
+  z-index: 1;
 }
 
 .histofy-btn:hover {
-  background: var(--histofy-bg-tertiary);
+  background: var(--histofy-bg-secondary);
   border-color: var(--histofy-primary);
   transform: translateY(-1px);
 }
 
-.histofy-btn-primary {
-  background: linear-gradient(135deg, var(--histofy-primary) 0%, #4c9aff 100%);
-  color: white;
-  border-color: var(--histofy-primary);
-}
-
-.histofy-btn-primary:hover {
-  background: linear-gradient(135deg, var(--histofy-primary-hover) 0%, #3182ce 100%);
-  border-color: var(--histofy-primary-hover);
+.histofy-btn:active {
+  transform: translateY(0);
 }
 
 .histofy-btn-secondary {
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text-secondary);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-btn-secondary:hover {
-  background: var(--histofy-bg-tertiary);
-  color: var(--histofy-text);
-}
-
-.histofy-btn-danger {
-  background: linear-gradient(135deg, var(--histofy-danger) 0%, #dc2626 100%);
-  color: white;
-  border-color: var(--histofy-danger);
-}
-
-.histofy-btn-danger:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-color: #dc2626;
+  background: var(--histofy-bg-secondary);
 }
 
 .histofy-btn-warning {
-  background: linear-gradient(135deg, var(--histofy-warning) 0%, #d97706 100%);
+  background: var(--histofy-warning);
   color: white;
   border-color: var(--histofy-warning);
 }
 
 .histofy-btn-warning:hover {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  border-color: #d97706;
+  background: #b91c2b;
+  border-color: #b91c2b;
 }
 
-/* Changes List */
-.histofy-changes-list {
-  margin: 24px 0;
-  max-height: 240px;
-  overflow-y: auto;
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
+/* Fixed panel positioning and sizing */
+.histofy-deploy-button {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 9999 !important;
+  font-family: var(--histofy-font) !important;
+  display: block !important;
 }
 
-/* Changes List Styling */
-.histofy-changes-list {
-  max-height: 300px;
-  overflow-y: auto;
-  margin: 20px 0;
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  background: var(--histofy-bg-main);
+.histofy-deploy-main {
+  position: relative !important;
 }
 
-.histofy-no-changes {
-  padding: 32px 20px;
-  text-align: center;
-  color: var(--histofy-text-secondary);
-}
-
-.histofy-no-changes p {
-  margin: 8px 0;
-  font-size: 14px;
-}
-
-.histofy-no-changes p:first-child {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--histofy-text);
-}
-
-.histofy-change-item {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--histofy-border);
-  transition: background-color 0.2s;
-}
-
-.histofy-change-item:hover {
-  background: var(--histofy-bg-card);
-}
-
-.histofy-change-item:last-child {
-  border-bottom: none;
-}
-
-.histofy-change-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.histofy-change-type {
-  font-weight: 600;
-  color: var(--histofy-primary);
-  font-size: 13px;
-}
-
-.histofy-change-time {
-  font-size: 11px;
-  color: var(--histofy-text-secondary);
-}
-
-.histofy-remove-change {
-  background: none;
-  border: none;
-  color: var(--histofy-text-secondary);
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--histofy-radius-sm);
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.histofy-remove-change:hover {
-  background: var(--histofy-danger);
-  color: white;
-  transform: scale(1.1);
-}
-
-.histofy-change-details {
-  font-size: 12px;
-  color: var(--histofy-text-secondary);
-  line-height: 1.4;
-}
-
-/* Deploy Actions */
-.histofy-deploy-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 2px solid var(--histofy-border);
-}
-
-/* Deployment Status */
-.histofy-deploy-status {
-  margin-top: 24px;
-  padding: 20px;
-  background: var(--histofy-bg-card);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-deployment-progress {
-  text-align: center;
-}
-
-.histofy-progress-bar {
-  width: 100%;
-  height: 8px;
-  background: var(--histofy-bg-main);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 14px;
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--histofy-primary) 0%, #4c9aff 100%);
-  transition: width 0.3s ease;
-  width: 0%;
-}
-
-#histofy-deployment-message {
-  margin: 10px 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--histofy-text);
-}
-
-.histofy-deployment-logs {
-  margin-top: 16px;
-  font-size: 11px;
-  text-align: left;
-  max-height: 120px;
-  overflow-y: auto;
-  background: var(--histofy-bg-main);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-log-entry {
-  padding: 8px 12px;
-  margin: 1px 0;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  border-left: 3px solid transparent;
-}
-
-.histofy-log-info {
-  background: rgba(88, 166, 255, 0.1);
-  color: var(--histofy-primary);
-  border-left-color: var(--histofy-primary);
-}
-
-.histofy-log-success {
-  background: rgba(63, 185, 80, 0.1);
-  color: var(--histofy-success);
-  border-left-color: var(--histofy-success);
-}
-
-.histofy-log-error {
-  background: rgba(248, 81, 73, 0.1);
-  color: var(--histofy-danger);
-  border-left-color: var(--histofy-danger);
-}
-
-.histofy-log-warning {
-  background: rgba(210, 153, 34, 0.1);
-  color: var(--histofy-warning);
-  border-left-color: var(--histofy-warning);
-}
-
-/* Repository link notification */
-.histofy-repo-link {
+.histofy-deploy-btn {
+  background: var(--histofy-primary) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 25px !important;
+  padding: 12px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3) !important;
+  transition: all 0.2s ease !important;
   display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px !important;
-  min-width: 320px;
-  background: var(--histofy-bg-card) !important;
-  border: 1px solid var(--histofy-success) !important;
+  align-items: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
 }
 
-.histofy-repo-link-btn {
-  background: linear-gradient(135deg, var(--histofy-success) 0%, #22c55e 100%);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: var(--histofy-radius);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  margin-left: 12px;
-  transition: all 0.2s ease;
+.histofy-deploy-btn:hover {
+  background: #0860ca !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(9, 105, 218, 0.4) !important;
 }
 
-.histofy-repo-link-btn:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  transform: translateY(-1px);
+.histofy-deploy-icon {
+  font-size: 16px !important;
 }
 
-/* Select styling improvements */
-.histofy-input select {
-  background: var(--histofy-bg-main);
-  color: var(--histofy-text);
-  border: 2px solid var(--histofy-border);
+.histofy-pending-badge {
+  background: #d1242f !important;
+  color: white !important;
+  border-radius: 12px !important;
+  padding: 2px 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  min-width: 18px !important;
+  text-align: center !important;
+  margin-left: 4px !important;
 }
 
-.histofy-input select optgroup {
-  font-weight: bold;
-  color: var(--histofy-text);
-  background: var(--histofy-bg-card);
+.histofy-pending-badge:empty,
+.histofy-pending-badge[data-count="0"] {
+  display: none !important;
 }
 
-.histofy-input select option {
-  padding: 8px;
-  color: var(--histofy-text);
-  background: var(--histofy-bg-main);
+/* Ensure deploy button is always visible on GitHub */
+body[data-color-mode] .histofy-deploy-button,
+body[data-color-mode="dark"] .histofy-deploy-button,
+body[data-color-mode="light"] .histofy-deploy-button {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-/* Loading state for repository select */
-.histofy-input select:disabled {
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text-muted);
-  cursor: not-allowed;
+/* Override any GitHub styles that might hide our button */
+.histofy-deploy-button * {
+  box-sizing: border-box !important;
 }
 
-/* Notification Styles */
+/* Mobile responsiveness for deploy button */
+@media (max-width: 768px) {
+  .histofy-deploy-button {
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+  
+  .histofy-deploy-btn {
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+  }
+  
+  .histofy-deploy-text {
+    display: none !important;
+  }
+}
+
+/* Ensure button appears above GitHub's elements */
+.histofy-deploy-button {
+  position: fixed !important;
+  z-index: 10000 !important;
+}
+
+/* ...existing code... */
+
+/* Notifications */
 .histofy-notification {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: var(--histofy-bg-card);
-  border: 1px solid var(--histofy-border);
+  padding: 12px 16px;
   border-radius: var(--histofy-radius);
-  padding: 16px 20px;
-  box-shadow: var(--histofy-shadow);
-  z-index: 10001;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  max-width: 340px;
-  animation: slideIn 0.3s ease;
-  backdrop-filter: blur(10px);
+  max-width: 300px;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
 }
 
 .histofy-notification-success {
-  border-left: 4px solid var(--histofy-success);
-  background: linear-gradient(135deg, var(--histofy-bg-card) 0%, rgba(63, 185, 80, 0.1) 100%);
-  color: var(--histofy-success);
+  background: var(--histofy-success);
+  color: white;
 }
 
 .histofy-notification-error {
-  border-left: 4px solid var(--histofy-danger);
-  background: linear-gradient(135deg, var(--histofy-bg-card) 0%, rgba(248, 81, 73, 0.1) 100%);
-  color: var(--histofy-danger);
+  background: var(--histofy-warning);
+  color: white;
 }
 
 .histofy-notification-warning {
-  border-left: 4px solid var(--histofy-warning);
-  background: linear-gradient(135deg, var(--histofy-bg-card) 0%, rgba(210, 153, 34, 0.1) 100%);
-  color: var(--histofy-warning);
+  background: #fb8500;
+  color: white;
 }
 
 .histofy-notification-info {
-  border-left: 4px solid var(--histofy-primary);
-  background: linear-gradient(135deg, var(--histofy-bg-card) 0%, rgba(88, 166, 255, 0.1) 100%);
-  color: var(--histofy-primary);
+  background: var(--histofy-primary);
+  color: white;
 }
 
 @keyframes slideIn {
@@ -741,38 +499,22 @@
   }
 }
 
-/* Scrollbar Styling */
-.histofy-deploy-content::-webkit-scrollbar,
-.histofy-changes-list::-webkit-scrollbar,
-.histofy-deployment-logs::-webkit-scrollbar {
-  width: 6px;
-}
-
-.histofy-deploy-content::-webkit-scrollbar-track,
-.histofy-changes-list::-webkit-scrollbar-track,
-.histofy-deployment-logs::-webkit-scrollbar-track {
-  background: var(--histofy-bg-main);
-}
-
-.histofy-deploy-content::-webkit-scrollbar-thumb,
-.histofy-changes-list::-webkit-scrollbar-thumb,
-.histofy-deployment-logs::-webkit-scrollbar-thumb {
-  background: var(--histofy-border);
-  border-radius: 3px;
-}
-
-.histofy-deploy-content::-webkit-scrollbar-thumb:hover,
-.histofy-changes-list::-webkit-scrollbar-thumb:hover,
-.histofy-deployment-logs::-webkit-scrollbar-thumb:hover {
-  background: var(--histofy-text-muted);
-}
-
-/* Responsive Design */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .histofy-deploy-panel {
-    width: 380px;
-    bottom: 80px;
+  .histofy-instruction-panel {
+    top: 10px;
     right: 10px;
+    left: 10px;
+    width: auto;
+    max-width: none;
+  }
+  
+  .histofy-deploy-panel {
+    bottom: 70px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-width: none;
   }
   
   .histofy-deploy-button {
@@ -781,15 +523,37 @@
   }
 }
 
+/* Stack panels vertically on very small screens */
 @media (max-width: 480px) {
-  .histofy-deploy-panel {
-    width: calc(100vw - 20px);
-    right: 10px;
+  .histofy-instruction-panel {
+    position: fixed;
+    top: 10px;
     left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 40vh;
+  }
+  
+  .histofy-deploy-panel {
+    position: fixed;
+    bottom: 70px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 40vh;
   }
 }
 
-/* Accessibility */
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --histofy-border: #000000;
+    --histofy-text: #000000;
+    --histofy-bg: #ffffff;
+  }
+}
+
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -798,722 +562,49 @@
   }
 }
 
-/* Light mode support (optional) */
-@media (prefers-color-scheme: light) {
-  :root {
-    --histofy-bg-main: #ffffff;
-    --histofy-bg-secondary: #f6f8fa;
-    --histofy-bg-tertiary: #ffffff;
-    --histofy-bg-card: #ffffff;
-    --histofy-border: #d0d7de;
-    --histofy-border-muted: #d8dee4;
-    --histofy-text: #24292f;
-    --histofy-text-secondary: #656d76;
-    --histofy-text-muted: #8b949e;
-  }
+/* Ensure tiles remain interactive and override GitHub's default behavior */
+[data-histofy-active="true"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 10 !important;
+  isolation: isolate !important;
 }
 
-/* New Repository Form */
-.histofy-new-repo-form {
-  margin: 18px 0;
-  padding: 20px;
-  background: var(--histofy-bg-tertiary);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
+/* Block GitHub's default contribution tile behavior when Histofy is active */
+.histofy-instruction-panel ~ * [data-date][data-histofy-active="true"] {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-.histofy-form-group {
-  margin-bottom: 20px;
+/* Prevent any interference with Histofy tiles */
+[data-histofy-active="true"]:hover {
+  outline: 2px solid var(--histofy-primary) !important;
+  outline-offset: 1px !important;
+  z-index: 15 !important;
 }
 
-.histofy-form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--histofy-text);
-  font-size: 13px;
-  font-weight: 600;
+/* Block GitHub's contribution graph interactions when Histofy is active */
+.js-calendar-graph-svg:has([data-histofy-active="true"]) {
+  pointer-events: none !important;
 }
 
-.histofy-repo-name-input {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  background: var(--histofy-bg-main);
-  overflow: hidden;
-  transition: border-color 0.2s;
+.js-calendar-graph-svg [data-histofy-active="true"] {
+  pointer-events: auto !important;
 }
 
-.histofy-repo-name-input:focus-within {
-  border-color: var(--histofy-primary);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+/* Ensure contribution calendar doesn't interfere */
+.ContributionCalendar:has([data-histofy-active="true"]) {
+  pointer-events: none !important;
 }
 
-.histofy-repo-owner {
-  padding: 12px 8px 12px 16px;
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  border-right: 1px solid var(--histofy-border);
-  white-space: nowrap;
+.ContributionCalendar [data-histofy-active="true"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
-.histofy-repo-name-input input {
-  flex: 1;
-  border: none;
-  padding: 12px 8px;
-  background: transparent;
-  color: var(--histofy-text);
-  font-size: 13px;
-}
-
-.histofy-repo-name-input input:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-.histofy-repo-name-input button {
-  border: none;
-  border-left: 1px solid var(--histofy-border);
-  border-radius: 0;
-  padding: 12px 16px;
-  font-size: 12px;
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text);
-  transition: background 0.2s;
-}
-
-.histofy-repo-name-input button:hover {
-  background: var(--histofy-bg-tertiary);
-}
-
-.histofy-repo-name-input button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.histofy-repo-name-status {
-  margin-top: 8px;
-}
-
-.histofy-repo-status {
-  padding: 8px 12px;
-  border-radius: var(--histofy-radius);
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.histofy-repo-status-success {
-  background: rgba(63, 185, 80, 0.1);
-  color: var(--histofy-success);
-  border: 1px solid rgba(63, 185, 80, 0.3);
-}
-
-.histofy-repo-status-error {
-  background: rgba(248, 81, 73, 0.1);
-  color: var(--histofy-danger);
-  border: 1px solid rgba(248, 81, 73, 0.3);
-}
-
-.histofy-repo-status-warning {
-  background: rgba(210, 153, 34, 0.1);
-  color: var(--histofy-warning);
-  border: 1px solid rgba(210, 153, 34, 0.3);
-}
-
-.histofy-repo-status-checking {
-  background: rgba(88, 166, 255, 0.1);
-  color: var(--histofy-primary);
-  border: 1px solid rgba(88, 166, 255, 0.3);
-}
-
-/* Visibility Options */
-.histofy-visibility-options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.histofy-visibility-option {
-  display: flex;
-  align-items: flex-start;
-  cursor: pointer;
-  padding: 16px;
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  background: var(--histofy-bg-main);
-  transition: all 0.2s ease;
-}
-
-.histofy-visibility-option:hover {
-  border-color: var(--histofy-primary);
-  background: var(--histofy-bg-card);
-  transform: translateY(-1px);
-}
-
-.histofy-visibility-option input[type="radio"] {
-  display: none;
-}
-
-.histofy-visibility-option input[type="radio"]:checked + .histofy-visibility-icon + .histofy-visibility-details {
-  color: var(--histofy-primary);
-}
-
-.histofy-visibility-option input[type="radio"]:checked ~ * {
-  border-color: var(--histofy-primary);
-}
-
-.histofy-visibility-option:has(input[type="radio"]:checked) {
-  border-color: var(--histofy-primary);
-  background: rgba(88, 166, 255, 0.05);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
-}
-
-.histofy-visibility-icon {
-  font-size: 24px;
-  margin-right: 12px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.histofy-visibility-details {
-  flex: 1;
-}
-
-.histofy-visibility-details strong {
-  display: block;
-  color: var(--histofy-text);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.histofy-visibility-details p {
-  margin: 0;
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-/* Third repository option styling */
-.histofy-repo-option:nth-child(3) .histofy-radio-label {
-  border: 2px solid rgba(255, 215, 0, 0.3);
-  background: linear-gradient(135deg, var(--histofy-bg-card) 0%, rgba(255, 215, 0, 0.05) 100%);
-}
-
-.histofy-repo-option:nth-child(3) .histofy-radio-label:hover {
-  border-color: #ffd700;
-  background: linear-gradient(135deg, var(--histofy-bg-tertiary) 0%, rgba(255, 215, 0, 0.1) 100%);
-}
-
-.histofy-repo-option:nth-child(3) .histofy-radio-label input[type="radio"]:checked {
-  border-color: #ffd700;
-}
-
-.histofy-repo-option:nth-child(3) .histofy-radio-custom {
-  border-color: rgba(255, 215, 0, 0.5);
-}
-
-.histofy-repo-option:nth-child(3) .histofy-radio-label input[type="radio"]:checked + .histofy-radio-custom {
-  border-color: #ffd700;
-  background: #ffd700;
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
-}
-
-.histofy-repo-option:nth-child(3) .histofy-repo-details strong {
-  background: linear-gradient(45deg, #ffd700, #ffed4e);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-/* Form validation feedback */
-.histofy-form-group.has-error input {
-  border-color: var(--histofy-danger);
-  box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.15);
-}
-
-.histofy-form-group.has-success input {
-  border-color: var(--histofy-success);
-  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.15);
-}
-
-/* Enhanced spacing for new form elements */
-.histofy-repository-section {
-  margin: 24px 0;
-  padding: 20px;
-  background: var(--histofy-bg-card);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-repo-options {
-  margin-bottom: 18px;
-}
-
-.histofy-repo-option {
-  margin-bottom: 12px;
-}
-
-/* Responsive adjustments for new elements */
-@media (max-width: 480px) {
-  .histofy-repo-name-input {
-    flex-direction: column;
-  }
-  
-  .histofy-repo-owner {
-    border-right: none;
-    border-bottom: 1px solid var(--histofy-border);
-    text-align: center;
-  }
-  
-  .histofy-repo-name-input button {
-    border-left: none;
-    border-top: 1px solid var(--histofy-border);
-  }
-  
-  .histofy-visibility-options {
-    gap: 8px;
-  }
-  
-  .histofy-visibility-option {
-    padding: 12px;
-  }
-}
-
-/* Profile Header Section */
-.histofy-profile-header {
-  margin: 20px 0;
-  padding: 24px;
-  background: var(--histofy-bg-card);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius-lg);
-  box-shadow: var(--histofy-shadow);
-}
-
-.histofy-profile-title {
-  margin-bottom: 20px;
-}
-
-.histofy-profile-title h2 {
-  margin: 0 0 8px 0;
-  color: var(--histofy-text);
-  font-size: 18px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-profile-title p {
-  margin: 0;
-  color: var(--histofy-text-secondary);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.histofy-profile-stats {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.histofy-stat {
-  text-align: center;
-  padding: 16px;
-  background: var(--histofy-bg-tertiary);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  min-width: 120px;
-  flex: 1;
-}
-
-.histofy-stat-number {
-  display: block;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--histofy-primary);
-  margin-bottom: 4px;
-}
-
-.histofy-stat-label {
-  display: block;
-  font-size: 12px;
-  color: var(--histofy-text-secondary);
-  font-weight: 500;
-}
-
-/* Contribution Graph Editor Section */
-.histofy-contribution-editor {
-  margin: 20px 0;
-  padding: 20px;
-  background: var(--histofy-bg-card);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius-lg);
-  box-shadow: var(--histofy-shadow);
-}
-
-.histofy-contribution-editor h3 {
-  margin: 0 0 16px 0;
-  color: var(--histofy-text);
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-editor-controls {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.histofy-editor-mode-btn {
-  padding: 8px 16px;
-  background: var(--histofy-bg-tertiary);
-  color: var(--histofy-text);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.histofy-editor-mode-btn:hover {
-  background: var(--histofy-bg-main);
-  border-color: var(--histofy-primary);
-}
-
-.histofy-editor-mode-btn.active {
-  background: var(--histofy-primary);
-  color: white;
-  border-color: var(--histofy-primary);
-}
-
-.histofy-click-intensity {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--histofy-text-secondary);
-}
-
-.histofy-intensity-buttons {
-  display: flex;
-  gap: 4px;
-}
-
-.histofy-intensity-btn-small {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--histofy-border);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-.histofy-intensity-btn-small:hover {
-  transform: scale(1.1);
-}
-
-.histofy-intensity-1 { background: #0e4429; color: white; }
-.histofy-intensity-2 { background: #006d32; color: white; }
-.histofy-intensity-3 { background: #26a641; color: white; }
-.histofy-intensity-4 { background: #39d353; color: black; }
-
-.histofy-editor-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--histofy-bg-tertiary);
-  border-radius: var(--histofy-radius);
-  font-size: 13px;
-  margin-top: 16px;
-}
-
-.histofy-selected-info {
-  color: var(--histofy-text);
-  font-weight: 500;
-}
-
-.histofy-editor-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.histofy-editor-actions button {
-  padding: 6px 12px;
-  font-size: 12px;
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.histofy-clear-btn {
-  background: var(--histofy-bg-card);
-  color: var(--histofy-text-secondary);
-}
-
-.histofy-clear-btn:hover {
-  background: var(--histofy-bg-main);
-  color: var(--histofy-text);
-}
-
-.histofy-store-btn {
-  background: var(--histofy-success);
-  color: white;
-  border-color: var(--histofy-success);
-}
-
-.histofy-store-btn:hover {
-  background: #22c55e;
-  border-color: #22c55e;
-}
-
-.histofy-contribution-summary {
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-/* Quick Actions Section */
-.histofy-quick-actions {
-  margin: 24px 0;
-  padding: 24px;
-  background: var(--histofy-bg-card);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius-lg);
-  box-shadow: var(--histofy-shadow);
-}
-
-.histofy-actions-section {
-  margin-bottom: 32px;
-}
-
-.histofy-actions-section h3 {
-  margin: 0 0 20px 0;
-  color: var(--histofy-text);
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.histofy-action-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  background: var(--histofy-bg-tertiary);
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: left;
-  width: 100%;
-}
-
-.histofy-action-card:hover {
-  border-color: var(--histofy-primary);
-  background: var(--histofy-bg-main);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(88, 166, 255, 0.1);
-}
-
-.histofy-action-icon {
-  font-size: 24px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.histofy-action-content h4 {
-  margin: 0 0 8px 0;
-  color: var(--histofy-text);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.histofy-action-content p {
-  margin: 0;
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-/* Intensity Section */
-.histofy-intensity-section {
-  border-top: 2px solid var(--histofy-border);
-  padding-top: 24px;
-}
-
-.histofy-intensity-section h3 {
-  margin: 0 0 20px 0;
-  color: var(--histofy-text);
-  font-size: 16px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.histofy-intensity-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.histofy-intensity-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.histofy-intensity-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 12px;
-  background: var(--histofy-bg-tertiary);
-  border: 2px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--histofy-text);
-}
-
-.histofy-intensity-btn:hover {
-  border-color: var(--histofy-primary);
-  background: var(--histofy-bg-main);
-  transform: translateY(-1px);
-}
-
-.histofy-intensity-preview {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  display: block;
-}
-
-/* GitHub contribution level previews */
-.histofy-preview-low-low { background: #0e4429; }
-.histofy-preview-low-medium { background: #0e4429; }
-.histofy-preview-low-high { background: #0e4429; }
-.histofy-preview-medium-low { background: #006d32; }
-.histofy-preview-medium-medium { background: #006d32; }
-.histofy-preview-medium-high { background: #006d32; }
-.histofy-preview-high-low { background: #26a641; }
-.histofy-preview-high-medium { background: #26a641; }
-.histofy-preview-high-high { background: #39d353; }
-
-.histofy-intensity-info {
-  padding: 20px;
-  background: var(--histofy-bg-main);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-}
-
-.histofy-intensity-info p {
-  margin: 8px 0;
-  color: var(--histofy-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.histofy-intensity-info p:first-child {
-  color: var(--histofy-text);
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.histofy-intensity-info p strong {
-  color: var(--histofy-text);
-}
-
-.histofy-intensity-info em {
-  color: var(--histofy-text-muted);
-  font-size: 11px;
-}
-
-.histofy-intensity-info a {
-  color: var(--histofy-primary);
-  text-decoration: none;
-}
-
-.histofy-intensity-info a:hover {
-  text-decoration: underline;
-}
-
-/* Responsive Design for Profile Components */
-@media (max-width: 768px) {
-  .histofy-profile-stats {
-    gap: 12px;
-  }
-  
-  .histofy-stat {
-    min-width: 100px;
-  }
-  
-  .histofy-actions-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .histofy-intensity-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-  
-  .histofy-editor-controls {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 480px) {
-  .histofy-profile-header,
-  .histofy-quick-actions,
-  .histofy-contribution-editor {
-    margin: 16px 0;
-    padding: 16px;
-  }
-  
-  .histofy-intensity-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .histofy-action-card {
-    padding: 16px;
-  }
-  
-  .histofy-editor-status {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
+/* Prevent any GitHub tooltips or overlays from interfering */
+.histofy-instruction-panel ~ * .Tooltip,
+.histofy-instruction-panel ~ * [role="tooltip"] {
+  display: none !important;
 }

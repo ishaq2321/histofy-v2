@@ -12,10 +12,19 @@ class DeployButton {
   async init() {
     console.log('Histofy: Deploy button initializing...');
     
-    // Wait a bit for other components to load
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for page to be ready
+    if (document.readyState === 'loading') {
+      await new Promise(resolve => {
+        document.addEventListener('DOMContentLoaded', resolve);
+      });
+    }
+
+    // Wait a bit for GitHub's dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     this.setupEventListeners();
+    
+    // Create button immediately
     this.createFloatingButton();
     
     // Initialize API after button is created
@@ -157,18 +166,20 @@ class DeployButton {
 
   setupEventListeners() {
     document.addEventListener('histofy-page-change', () => {
-      setTimeout(() => this.updateButtonVisibility(), 100);
+      this.updateButtonVisibility();
     });
 
-    // Listen for storage changes to update pending count
+    // Listen for storage changes to update pending count more frequently
     this.updateInterval = setInterval(() => {
       this.updatePendingCount();
-    }, 2000);
+    }, 1000); // Check every second
     
     // Listen for DOM changes to ensure button stays visible
-    this.domObserver = new MutationObserver(() => {
-      if (!document.querySelector('.histofy-deploy-button')) {
-        console.log('Histofy: Deploy button disappeared, recreating...');
+    this.domObserver = new MutationObserver((mutations) => {
+      // Check if our button is still in the DOM
+      const existingButton = document.querySelector('.histofy-deploy-button');
+      if (!existingButton) {
+        console.log('Histofy: Deploy button removed from DOM, recreating...');
         this.createFloatingButton();
       }
     });
@@ -190,9 +201,13 @@ class DeployButton {
   }
 
   createFloatingButton() {
+    // Check if button already exists
     if (document.querySelector('.histofy-deploy-button')) {
+      console.log('Histofy: Deploy button already exists, skipping creation');
       return;
     }
+
+    console.log('Histofy: Creating deploy button...');
 
     const deployButton = document.createElement('div');
     deployButton.className = 'histofy-deploy-button';
@@ -328,8 +343,14 @@ class DeployButton {
       </div>
     `;
 
+    // Add to page
     document.body.appendChild(deployButton);
+    console.log('Histofy: Deploy button added to page');
+
+    // Setup button handlers
     this.setupButtonHandlers(deployButton);
+    
+    // Load saved credentials
     this.loadSavedCredentials();
   }
 
@@ -440,8 +461,9 @@ class DeployButton {
 
     panel.style.display = 'block';
     
-    console.log('Histofy: Panel shown, updating content...');
+    console.log('Histofy: Deploy panel shown, updating content...');
     
+    // Force refresh of pending changes before showing panel
     await this.updatePendingCount();
     await this.populateChangesList();
     
@@ -464,18 +486,33 @@ class DeployButton {
   async updatePendingCount() {
     try {
       if (window.histofyStorage) {
-        const pendingChanges = await window.histofyStorage.getPendingChanges();
-        this.pendingChanges = pendingChanges || [];
+        const data = await window.histofyStorage.getData();
+        this.pendingChanges = data.pendingChanges || [];
         
-        const countElement = document.querySelector('#histofy-pending-count');
-        if (countElement) {
-          countElement.textContent = this.pendingChanges.length;
-          countElement.style.display = this.pendingChanges.length > 0 ? 'inline' : 'none';
+        console.log('Histofy Deploy: Updated pending changes:', this.pendingChanges.length);
+        
+        // Update badge
+        const badge = document.getElementById('histofy-pending-count');
+        if (badge) {
+          badge.textContent = this.pendingChanges.length;
+          badge.style.display = this.pendingChanges.length > 0 ? 'inline' : 'none';
         }
         
-        console.log(`Histofy: Updated pending count: ${this.pendingChanges.length}`);
+        // Update main button state
+        const mainBtn = document.getElementById('histofy-main-deploy');
+        if (mainBtn) {
+          const hasChanges = this.pendingChanges.length > 0;
+          mainBtn.classList.toggle('histofy-has-changes', hasChanges);
+          
+          if (hasChanges) {
+            mainBtn.setAttribute('title', `${this.pendingChanges.length} pending changes ready to deploy`);
+          } else {
+            mainBtn.setAttribute('title', 'No pending changes to deploy');
+          }
+        }
+        
       } else {
-        console.warn('Histofy: Storage manager not available');
+        console.warn('Histofy Deploy: Storage not available');
         this.pendingChanges = [];
       }
     } catch (error) {
@@ -487,11 +524,15 @@ class DeployButton {
   updateButtonVisibility() {
     const deployButton = document.querySelector('.histofy-deploy-button');
     if (!deployButton) {
-      // Recreate button if it doesn't exist
+      console.log('Histofy: Deploy button not found, creating...');
       this.createFloatingButton();
       return;
     }
 
+    // Always show the button on GitHub pages
+    const isGitHubPage = window.location.href.includes('github.com');
+    deployButton.style.display = isGitHubPage ? 'block' : 'none';
+    
     // Update pending count
     this.updatePendingCount();
   }
@@ -1124,11 +1165,23 @@ class DeployButton {
     // Force refresh changes before populating
     await this.updatePendingCount();
 
+    console.log('Histofy Deploy: Populating changes list with', this.pendingChanges.length, 'changes');
+
     if (this.pendingChanges.length === 0) {
       changesList.innerHTML = `
         <div class="histofy-no-changes">
-          <p>📭 No pending changes</p>
-          <p>💡 Go to a GitHub profile and select dates to get started!</p>
+          <div class="histofy-no-changes-icon">📭</div>
+          <h4>No Pending Changes</h4>
+          <p>Select contribution tiles on a GitHub profile to create changes for deployment.</p>
+          <div class="histofy-no-changes-steps">
+            <p><strong>How to get started:</strong></p>
+            <ol>
+              <li>Go to any GitHub profile page</li>
+              <li>Click "🚀 Activate Histofy"</li>
+              <li>Click on contribution tiles to select dates</li>
+              <li>Come back here to deploy your changes</li>
+            </ol>
+          </div>
         </div>
       `;
       return;
@@ -1140,7 +1193,7 @@ class DeployButton {
           <div class="histofy-change-header">
             <span class="histofy-change-type">${this.formatChangeType(change.type)}</span>
             <span class="histofy-change-time">${this.formatTime(change.timestamp)}</span>
-            <button class="histofy-remove-change" data-change-id="${change.id}">🗑️</button>
+            <button class="histofy-remove-change" data-change-id="${change.id}" title="Remove this change">🗑️</button>
           </div>
           <div class="histofy-change-details">
             ${this.formatChangeDetails(change)}
@@ -1153,9 +1206,11 @@ class DeployButton {
 
     // Setup remove buttons
     changesList.querySelectorAll('.histofy-remove-change').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const changeId = e.target.getAttribute('data-change-id');
-        this.removeChange(changeId);
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const changeId = btn.getAttribute('data-change-id');
+        await this.removeChange(changeId);
       });
     });
   }
@@ -1174,18 +1229,37 @@ class DeployButton {
   formatChangeDetails(change) {
     switch (change.type) {
       case 'date_selection':
-        const dateCount = change.dates?.length || 0;
-        const sampleDates = change.dates?.slice(0, 3).join(', ') || '';
-        const moreText = dateCount > 3 ? ` and ${dateCount - 3} more...` : '';
-        return `Selected ${dateCount} dates: ${sampleDates}${moreText}`;
-      case 'move_commits':
-        return `Move ${change.sourceDates?.length || 0} dates to ${change.targetDate}`;
-      case 'move_commits_timeline':
-        return `Move ${change.commits?.length || 0} commits to ${change.targetDate}`;
-      case 'intensity_pattern':
-        return `Pattern: ${change.commits}/${change.intensity}`;
+        const dates = change.dates || [];
+        const contributions = change.contributions || {};
+        const totalDates = dates.length;
+        
+        if (totalDates === 0) {
+          return '<p>No dates selected</p>';
+        }
+        
+        // Group by contribution level
+        const levelCounts = {};
+        dates.forEach(date => {
+          const level = contributions[date]?.level || 0;
+          const levelName = contributions[date]?.name || 'None';
+          levelCounts[levelName] = (levelCounts[levelName] || 0) + 1;
+        });
+        
+        const levelSummary = Object.entries(levelCounts)
+          .map(([name, count]) => `${count} ${name}`)
+          .join(', ');
+        
+        return `
+          <p><strong>User:</strong> ${change.username} (${change.year})</p>
+          <p><strong>Selected Dates:</strong> ${totalDates} dates</p>
+          <p><strong>Levels:</strong> ${levelSummary}</p>
+          <div class="histofy-date-range">
+            <strong>Date Range:</strong> ${dates[0]} to ${dates[dates.length - 1]}
+          </div>
+        `;
+      
       default:
-        return 'Details not available';
+        return `<p>Unknown change type: ${change.type}</p>`;
     }
   }
 

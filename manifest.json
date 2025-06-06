@@ -24,9 +24,9 @@
         "api/github-deployer.js",
         "api/git-operations.js",
         "content-scripts/github-detector.js",
+        "ui-components/deploy-button.js",
         "ui-components/contribution-graph-overlay.js",
         "ui-components/commit-timeline-editor.js",
-        "ui-components/deploy-button.js",
         "content-scripts/profile-injector.js",
         "content-scripts/repository-injector.js"
       ],
