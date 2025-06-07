@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deployment Debug Test - Histofy</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        button { margin: 5px; padding: 10px; }
+        .results { margin: 10px 0; padding: 10px; background: #f9f9f9; }
+        .log { font-family: monospace; font-size: 12px; margin: 5px 0; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Deployment Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Basic Environment Check</h2>
+        <button onclick="testBasicEnvironment()">Test Basic Environment</button>
+        <div id="basic-environment-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. API Initialization Test</h2>
+        <button onclick="testAPIInitialization()">Test API Initialization</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Mock Data Creation Test</h2>
+        <button onclick="testMockData()">Create Mock Data</button>
+        <div id="mock-data-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Deployment Flow Test (No Auth)</h2>
+        <button onclick="testDeploymentFlow()">Test Deployment Flow</button>
+        <div id="deployment-flow-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Storage Test</h2>
+        <button onclick="testStorage()">Test Storage</button>
+        <div id="storage-results"></div>
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="/storage/local-storage-manager.js"></script>
+    <script src="/api/github-api.js"></script>
+    <script src="/api/github-deployer.js"></script>
+    <script src="/ui-components/deploy-button.js"></script>
+
+    <script>
+        let testLogs = [];
+
+        function log(level, message, containerId = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+            testLogs.push(logEntry);
+            console.log(logEntry);
+            
+            if (containerId) {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    const logDiv = document.createElement('div');
+                    logDiv.className = `log ${level}`;
+                    logDiv.textContent = logEntry;
+                    container.appendChild(logDiv);
+                }
+            }
+            
+            return logEntry;
+        }
+
+        function clearResults(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+
+        async function testBasicEnvironment() {
+            clearResults('basic-environment-results');
+            log('info', 'Starting basic environment test...', 'basic-environment-results');
+            
+            try {
+                // Check if classes are available
+                const checks = [
+                    { name: 'GitHubAPI', available: typeof GitHubAPI !== 'undefined' },
+                    { name: 'GitHubDeployer', available: typeof GitHubDeployer !== 'undefined' },
+                    { name: 'DeployButton', available: typeof DeployButton !== 'undefined' },
+                    { name: 'histofyStorage', available: typeof window.histofyStorage !== 'undefined' },
+                    { name: 'histofyDeployButton', available: typeof window.histofyDeployButton !== 'undefined' }
+                ];
+
+                checks.forEach(check => {
+                    log(check.available ? 'pass' : 'fail', 
+                        `${check.name}: ${check.available ? 'Available' : 'NOT Available'}`, 
+                        'basic-environment-results');
+                });
+
+                // Check if deploy button exists in DOM
+                const deployButton = document.querySelector('.histofy-deploy-button');
+                log(deployButton ? 'pass' : 'fail', 
+                    `Deploy button in DOM: ${deployButton ? 'Found' : 'NOT Found'}`, 
+                    'basic-environment-results');
+
+                log('info', 'Basic environment test completed', 'basic-environment-results');
+
+            } catch (error) {
+                log('fail', `Basic environment test failed: ${error.message}`, 'basic-environment-results');
+            }
+        }
+
+        async function testAPIInitialization() {
+            clearResults('api-results');
+            log('info', 'Starting API initialization test...', 'api-results');
+            
+            try {
+                // Test GitHubAPI initialization
+                log('info', 'Initializing GitHubAPI...', 'api-results');
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                log('pass', 'GitHubAPI initialized successfully', 'api-results');
+
+                // Test GitHubDeployer initialization
+                log('info', 'Initializing GitHubDeployer...', 'api-results');
+                const deployer = new GitHubDeployer(githubAPI);
+                log('pass', 'GitHubDeployer initialized successfully', 'api-results');
+
+                // Test essential methods
+                log('info', 'Testing essential methods...', 'api-results');
+                
+                // Test logging
+                deployer.log('info', 'Test log message');
+                log('pass', 'log() method works', 'api-results');
+
+                // Test status update
+                deployer.updateStatus('Test status', 25);
+                log('pass', 'updateStatus() method works', 'api-results');
+
+                // Test authentication check
+                const isAuth = githubAPI.isAuthenticated();
+                log('info', `Authentication status: ${isAuth}`, 'api-results');
+
+                log('info', 'API initialization test completed successfully', 'api-results');
+
+            } catch (error) {
+                log('fail', `API initialization test failed: ${error.message}`, 'api-results');
+            }
+        }
+
+        async function testMockData() {
+            clearResults('mock-data-results');
+            log('info', 'Creating mock data for testing...', 'mock-data-results');
+            
+            try {
+                // Create mock pending changes
+                const mockChanges = [
+                    {
+                        id: 'test-change-' + Date.now(),
+                        type: 'date_selection',
+                        dates: ['2024-01-01', '2024-01-02', '2024-01-03'],
+                        contributions: {
+                            '2024-01-01': { level: 1, name: 'Low' },
+                            '2024-01-02': { level: 2, name: 'Medium' },
+                            '2024-01-03': { level: 3, name: 'High' }
+                        },
+                        username: 'testuser',
+                        year: 2024,
+                        timestamp: Date.now()
+                    }
+                ];
+
+                log('pass', `Created mock change with ${mockChanges[0].dates.length} dates`, 'mock-data-results');
+
+                // Test storing in histofyStorage if available
+                if (window.histofyStorage) {
+                    log('info', 'Storing mock data in histofyStorage...', 'mock-data-results');
+                    await window.histofyStorage.storePendingChange(mockChanges[0]);
+                    log('pass', 'Mock data stored successfully', 'mock-data-results');
+
+                    // Verify storage
+                    const storedChanges = await window.histofyStorage.getPendingChanges();
+                    log('info', `Retrieved ${storedChanges.length} stored changes`, 'mock-data-results');
+                } else {
+                    log('warning', 'histofyStorage not available for mock data test', 'mock-data-results');
+                }
+
+                log('info', 'Mock data creation completed', 'mock-data-results');
+
+            } catch (error) {
+                log('fail', `Mock data creation failed: ${error.message}`, 'mock-data-results');
+            }
+        }
+
+        async function testDeploymentFlow() {
+            clearResults('deployment-flow-results');
+            log('info', 'Testing deployment flow (without authentication)...', 'deployment-flow-results');
+            
+            try {
+                // Initialize components
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                const deployer = new GitHubDeployer(githubAPI);
+
+                log('pass', 'Components initialized for deployment test', 'deployment-flow-results');
+
+                // Test deployment status methods
+                const initialStatus = deployer.getDeploymentStatus();
+                log('info', `Initial deployment status: isDeploying=${initialStatus.isDeploying}`, 'deployment-flow-results');
+
+                // Test target repository determination
+                const mockOptions = {
+                    targetRepository: 'testuser/test-repo',
+                    createIfNotExists: true
+                };
+                
+                const targetRepo = deployer.determineTargetRepository(mockOptions);
+                log('pass', `Target repository: ${targetRepo.owner}/${targetRepo.repo}`, 'deployment-flow-results');
+
+                // Test change grouping
+                const mockChanges = [
+                    {
+                        id: 'test1',
+                        type: 'date_selection',
+                        dates: ['2024-01-01'],
+                        contributions: { '2024-01-01': { level: 1, name: 'Low' } }
+                    }
+                ];
+
+                const grouped = deployer.groupChangesByRepository(mockChanges, targetRepo);
+                log('pass', `Changes grouped: ${Object.keys(grouped).length} repositories`, 'deployment-flow-results');
+
+                // Test authentication requirement
+                log('info', 'Testing authentication requirement...', 'deployment-flow-results');
+                try {
+                    await deployer.deployDateSelections(mockChanges, mockOptions);
+                    log('warning', 'Deployment proceeded without authentication (unexpected)', 'deployment-flow-results');
+                } catch (error) {
+                    if (error.message.includes('not authenticated') || error.message.includes('token') || error.message.includes('auth')) {
+                        log('pass', 'Deployment correctly requires authentication', 'deployment-flow-results');
+                    } else {
+                        log('info', `Deployment failed with: ${error.message}`, 'deployment-flow-results');
+                    }
+                }
+
+                log('info', 'Deployment flow test completed', 'deployment-flow-results');
+
+            } catch (error) {
+                log('fail', `Deployment flow test failed: ${error.message}`, 'deployment-flow-results');
+            }
+        }
+
+        async function testStorage() {
+            clearResults('storage-results');
+            log('info', 'Testing storage functionality...', 'storage-results');
+            
+            try {
+                if (!window.histofyStorage) {
+                    log('fail', 'histofyStorage is not available', 'storage-results');
+                    return;
+                }
+
+                // Test basic storage operations
+                log('info', 'Testing basic storage operations...', 'storage-results');
+                
+                const testData = await window.histofyStorage.getData();
+                log('pass', `Storage getData() works: ${JSON.stringify(testData).length} chars`, 'storage-results');
+
+                const pendingChanges = await window.histofyStorage.getPendingChanges();
+                log('info', `Pending changes count: ${pendingChanges ? pendingChanges.length : 0}`, 'storage-results');
+
+                const userSettings = await window.histofyStorage.getUserSettings();
+                log('info', `User settings: token=${!!userSettings.token}, username=${userSettings.username || 'not set'}`, 'storage-results');
+
+                // Test deploy button's access to storage
+                if (window.histofyDeployButton) {
+                    log('info', 'Testing deploy button storage access...', 'storage-results');
+                    await window.histofyDeployButton.updatePendingCount();
+                    const buttonChanges = window.histofyDeployButton.pendingChanges;
+                    log('info', `Deploy button sees ${buttonChanges.length} pending changes`, 'storage-results');
+                } else {
+                    log('warning', 'Deploy button instance not available', 'storage-results');
+                }
+
+                log('info', 'Storage test completed', 'storage-results');
+
+            } catch (error) {
+                log('fail', `Storage test failed: ${error.message}`, 'storage-results');
+            }
+        }
+
+        // Auto-run basic environment check on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testBasicEnvironment();
+            }, 1000);
+        });
+
+    </script>
+</body>
+</html>

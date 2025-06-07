@@ -151,17 +151,21 @@ class ProfileInjector {
           <button class="histofy-activate-btn" id="histofy-activate-btn">
             🚀 Activate Histofy (${this.currentYear})
           </button>
+          <div class="histofy-control-buttons" id="histofy-control-buttons" style="display: none;">
+            <button class="histofy-store-btn" id="histofy-store-btn">
+              💾 Store Changes
+            </button>
+            <button class="histofy-clear-btn" id="histofy-clear-btn">
+              🗑️ Clear All
+            </button>
+          </div>
         </div>
         <div class="histofy-activate-info">
-          <p>💡 <strong>How it works (Tested & Verified Ranges):</strong></p>
           <p>• <strong>1st click:</strong> Low contributions (1-3 commits) - Darkest green ✅</p>
           <p>• <strong>2nd click:</strong> Medium contributions (10-14 commits) - Dark green (Fixed)</p>
           <p>• <strong>3rd click:</strong> High contributions (20-24 commits) - Medium green (Fixed)</p>
           <p>• <strong>4th click:</strong> Very high contributions (25+ commits) - Light green ✅</p>
           <p>• <strong>5th click:</strong> Back to no contributions (original state)</p>
-          <div class="histofy-testing-badge">
-            <span>📊 Ranges tested: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅</span>
-          </div>
         </div>
       </div>
     `;
@@ -171,6 +175,7 @@ class ProfileInjector {
 
     // Setup event listeners
     this.setupActivateButton();
+    this.setupControlButtons();
   }
 
   findContributionSection() {
@@ -242,6 +247,12 @@ class ProfileInjector {
   handleActivateClick() {
     console.log('Histofy: Activate button clicked');
 
+    // Check if already active - if so, deactivate
+    if (window.histofyOverlay && window.histofyOverlay.isActive) {
+      this.handleDeactivateClick();
+      return;
+    }
+
     // Temporarily disable the button to prevent double-clicks
     const activateBtn = document.getElementById('histofy-activate-btn');
     if (activateBtn) {
@@ -307,6 +318,85 @@ class ProfileInjector {
         this.showTroubleshootingInfo(error);
       }
     }, 200);
+  }
+
+  handleDeactivateClick() {
+    console.log('Histofy: Deactivate button clicked');
+    
+    if (window.histofyOverlay && window.histofyOverlay.isActive) {
+      window.histofyOverlay.deactivate();
+      this.showNotification('Histofy deactivated', 'info');
+      this.updateActivateButton(false);
+      this.showControlButtons(false);
+    }
+  }
+
+  setupControlButtons() {
+    // Setup Store Changes button
+    const storeBtn = document.getElementById('histofy-store-btn');
+    if (storeBtn) {
+      storeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleStoreChanges();
+      });
+    }
+
+    // Setup Clear All button
+    const clearBtn = document.getElementById('histofy-clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleClearAll();
+      });
+    }
+  }
+
+  handleStoreChanges() {
+    console.log('Histofy: Store Changes button clicked');
+    
+    if (!window.histofyOverlay || !window.histofyOverlay.isActive) {
+      this.showNotification('Histofy is not active', 'warning');
+      return;
+    }
+
+    // Get the current contributions
+    const contributions = window.histofyOverlay.getContributions();
+    const selectedCount = Object.keys(contributions).length;
+    
+    if (selectedCount === 0) {
+      this.showNotification('No changes to store. Please select some dates first.', 'warning');
+      return;
+    }
+
+    // Force add to pending changes
+    if (window.histofyOverlay.forceStorePendingChanges) {
+      window.histofyOverlay.forceStorePendingChanges();
+      this.showNotification(`✅ Stored ${selectedCount} changes to pending deployment`, 'success');
+    } else {
+      this.showNotification('Unable to store changes. Please try again.', 'error');
+    }
+  }
+
+  handleClearAll() {
+    console.log('Histofy: Clear All button clicked');
+    
+    if (!window.histofyOverlay || !window.histofyOverlay.isActive) {
+      this.showNotification('Histofy is not active', 'warning');
+      return;
+    }
+
+    // Clear all selections and pending changes
+    window.histofyOverlay.clearAllSelections();
+    this.showNotification('🗑️ Cleared all selections and stored changes', 'info');
+  }
+
+  showControlButtons(show) {
+    const controlButtons = document.getElementById('histofy-control-buttons');
+    if (controlButtons) {
+      controlButtons.style.display = show ? 'flex' : 'none';
+    }
   }
 
   isValidActivationPage() {
@@ -384,17 +474,20 @@ class ProfileInjector {
     if (!activateBtn) return;
 
     if (isActive) {
-      activateBtn.textContent = '✅ Histofy Active - Click tiles to edit';
-      activateBtn.disabled = true;
-      activateBtn.classList.add('histofy-btn-success');
-      activateBtn.style.opacity = '0.8';
-      activateBtn.style.cursor = 'not-allowed';
-    } else {
-      activateBtn.textContent = `🚀 Activate Histofy (${this.currentYear})`;
+      activateBtn.textContent = '🔴 Deactivate Histofy';
       activateBtn.disabled = false;
+      activateBtn.classList.add('histofy-btn-active');
       activateBtn.classList.remove('histofy-btn-success');
       activateBtn.style.opacity = '1';
       activateBtn.style.cursor = 'pointer';
+      this.showControlButtons(true);
+    } else {
+      activateBtn.textContent = `🚀 Activate Histofy (${this.currentYear})`;
+      activateBtn.disabled = false;
+      activateBtn.classList.remove('histofy-btn-active', 'histofy-btn-success');
+      activateBtn.style.opacity = '1';
+      activateBtn.style.cursor = 'pointer';
+      this.showControlButtons(false);
     }
   }
 

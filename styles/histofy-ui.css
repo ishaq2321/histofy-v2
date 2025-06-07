@@ -114,246 +114,81 @@
   border: 1px solid var(--histofy-border);
 }
 
-/* Instruction Panel */
-.histofy-instruction-panel {
-  background: var(--histofy-bg);
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-family: var(--histofy-font);
-  user-select: none;
-  
-  /* Fixed positioning and dimensions */
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 350px;
-  max-width: 90vw;
-  max-height: 80vh;
-  z-index: 10000;
-  overflow-y: auto;
-}
-
-.histofy-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--histofy-border);
-  background: var(--histofy-bg-secondary);
-}
-
-.histofy-panel-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--histofy-text);
-}
-
-.histofy-panel-close {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--histofy-text-secondary);
-  padding: 6px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  min-width: 32px;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 10001;
-}
-
-.histofy-panel-close:hover {
-  background: var(--histofy-border);
-  color: var(--histofy-text);
-  transform: scale(1.1);
-}
-
-.histofy-panel-close:active {
-  transform: scale(0.95);
-  background: var(--histofy-text-secondary);
-  color: var(--histofy-bg);
-}
-
-.histofy-panel-content {
-  padding: 20px;
-}
-
-.histofy-instructions {
-  margin-bottom: 20px;
-}
-
-.histofy-instructions p {
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: var(--histofy-text);
-}
-
-.histofy-level-examples {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Control buttons */
+.histofy-control-buttons {
   margin-top: 12px;
-  padding: 12px;
-  background: var(--histofy-bg-secondary);
-  border-radius: var(--histofy-radius);
-  border: 1px solid var(--histofy-border);
-}
-
-.histofy-level-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--histofy-text);
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-.histofy-level-item:hover {
-  background: var(--histofy-bg);
-}
-
-.histofy-level-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  border: 1px solid var(--histofy-border);
-  flex-shrink: 0;
-}
-
-.histofy-click-info {
-  margin-top: 16px;
-  padding: 12px;
-  background: var(--histofy-bg-secondary);
-  border-radius: var(--histofy-radius);
-  border-left: 4px solid var(--histofy-primary);
-}
-
-.histofy-click-info h5 {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--histofy-primary);
-}
-
-.histofy-click-info ul {
-  margin: 0;
-  padding-left: 16px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.histofy-click-info li {
-  margin-bottom: 4px;
-  color: var(--histofy-text);
-}
-
-.histofy-click-info li:last-child {
-  margin-bottom: 0;
-}
-
-.histofy-level-examples {
-  display: flex;
-  flex-direction: column;
+  display: none;
   gap: 8px;
-}
-
-.histofy-level-item {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--histofy-text);
 }
 
-.histofy-level-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  border: 1px solid var(--histofy-border);
-  flex-shrink: 0;
-}
-
-.histofy-stats {
-  margin-bottom: 20px;
-  padding: 12px;
-  background: var(--histofy-bg-secondary);
-  border-radius: var(--histofy-radius);
-}
-
-.histofy-stat {
+.histofy-control-buttons.show {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
 }
 
-.histofy-stat-label {
-  color: var(--histofy-text-secondary);
-  font-weight: 500;
-}
-
-.histofy-stat-value {
-  color: var(--histofy-text);
-  font-weight: 600;
-  font-family: monospace;
-}
-
-.histofy-panel-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.histofy-btn {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid var(--histofy-border);
-  border-radius: var(--histofy-radius);
+.histofy-store-btn,
+.histofy-clear-btn {
   background: var(--histofy-bg);
   color: var(--histofy-text);
+  border: 1px solid var(--histofy-border);
+  border-radius: var(--histofy-radius);
+  padding: 8px 12px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: center;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  position: relative;
-  z-index: 1;
+  font-family: var(--histofy-font);
 }
 
-.histofy-btn:hover {
+.histofy-store-btn:hover,
+.histofy-clear-btn:hover {
   background: var(--histofy-bg-secondary);
   border-color: var(--histofy-primary);
   transform: translateY(-1px);
+  box-shadow: var(--histofy-shadow);
 }
 
-.histofy-btn:active {
+.histofy-store-btn:active,
+.histofy-clear-btn:active {
   transform: translateY(0);
+  box-shadow: none;
 }
 
-.histofy-btn-secondary {
-  background: var(--histofy-bg-secondary);
+.histofy-store-btn {
+  background: var(--histofy-success);
+  color: white;
+  border-color: var(--histofy-success);
 }
 
-.histofy-btn-warning {
+.histofy-store-btn:hover {
+  background: #166e2f;
+  border-color: #166e2f;
+}
+
+.histofy-clear-btn {
   background: var(--histofy-warning);
   color: white;
   border-color: var(--histofy-warning);
 }
 
-.histofy-btn-warning:hover {
-  background: #b91c2b;
-  border-color: #b91c2b;
+.histofy-clear-btn:hover {
+  background: #b91c26;
+  border-color: #b91c26;
+}
+
+.histofy-btn-active {
+  background: var(--histofy-warning) !important;
+  border-color: var(--histofy-warning) !important;
+  color: white !important;
+}
+
+.histofy-btn-active:hover {
+  background: #b91c26 !important;
+  border-color: #b91c26 !important;
 }
 
 /* Fixed panel positioning and sizing */
@@ -443,6 +278,21 @@ body[data-color-mode="light"] .histofy-deploy-button {
   .histofy-deploy-text {
     display: none !important;
   }
+  
+  /* Control buttons mobile adjustments */
+  .histofy-control-buttons {
+    margin-top: 8px;
+    gap: 6px;
+  }
+  
+  .histofy-store-btn,
+  .histofy-clear-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
 }
 
 /* Ensure button appears above GitHub's elements */
@@ -451,7 +301,683 @@ body[data-color-mode="light"] .histofy-deploy-button {
   z-index: 10000 !important;
 }
 
-/* ...existing code... */
+/* Deploy Panel Styles */
+.histofy-deploy-panel {
+  position: fixed !important;
+  bottom: 80px !important;
+  right: 20px !important;
+  width: 420px !important;
+  max-height: 70vh !important;
+  background: var(--histofy-bg) !important;
+  border: 1px solid var(--histofy-border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  font-family: var(--histofy-font) !important;
+  z-index: 9998 !important;
+  display: none !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(8px) !important;
+  animation: panelSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.histofy-deploy-panel[style*="display: block"] {
+  display: block !important;
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Panel Header */
+.histofy-deploy-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px 16px !important;
+  border-bottom: 1px solid var(--histofy-border) !important;
+  background: linear-gradient(135deg, var(--histofy-bg-secondary), var(--histofy-bg)) !important;
+  margin: 0 !important;
+}
+
+.histofy-deploy-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--histofy-text) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.histofy-close-panel {
+  background: none !important;
+  border: none !important;
+  font-size: 18px !important;
+  color: var(--histofy-text-secondary) !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.histofy-close-panel:hover {
+  background: var(--histofy-bg-secondary) !important;
+  color: var(--histofy-text) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Panel Content */
+.histofy-deploy-content {
+  padding: 0 !important;
+  max-height: calc(70vh - 80px) !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--histofy-border) transparent !important;
+}
+
+.histofy-deploy-content::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.histofy-deploy-content::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.histofy-deploy-content::-webkit-scrollbar-thumb {
+  background: var(--histofy-border) !important;
+  border-radius: 3px !important;
+}
+
+.histofy-deploy-content::-webkit-scrollbar-thumb:hover {
+  background: var(--histofy-text-secondary) !important;
+}
+
+/* Section Styles */
+.histofy-auth-section,
+.histofy-repository-section {
+  padding: 20px 24px !important;
+  border-bottom: 1px solid var(--histofy-border) !important;
+}
+
+.histofy-repository-section h4 {
+  margin: 0 0 16px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--histofy-text) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Authentication Styles */
+.histofy-auth-inputs {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.histofy-auth-status {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px !important;
+  background: linear-gradient(135deg, var(--histofy-success), #1a7f37) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+}
+
+.histofy-auth-success {
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.histofy-auth-success::before {
+  content: "✅" !important;
+}
+
+.histofy-auth-help {
+  margin-top: 16px !important;
+  padding: 16px !important;
+  background: var(--histofy-bg-secondary) !important;
+  border-radius: 12px !important;
+  border-left: 4px solid var(--histofy-primary) !important;
+}
+
+.histofy-auth-help p {
+  margin: 8px 0 !important;
+  font-size: 14px !important;
+  color: var(--histofy-text-secondary) !important;
+}
+
+.histofy-auth-help a {
+  color: var(--histofy-primary) !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+}
+
+.histofy-auth-help a:hover {
+  text-decoration: underline !important;
+}
+
+.histofy-auth-help code {
+  background: var(--histofy-bg) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  border: 1px solid var(--histofy-border) !important;
+}
+
+/* Repository Options */
+.histofy-repo-options {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+.histofy-repo-option {
+  border: 2px solid var(--histofy-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  background: var(--histofy-bg) !important;
+}
+
+.histofy-repo-option:hover {
+  border-color: var(--histofy-primary) !important;
+  background: var(--histofy-bg-secondary) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.1) !important;
+}
+
+.histofy-repo-option:has(input:checked) {
+  border-color: var(--histofy-primary) !important;
+  background: linear-gradient(135deg, rgba(9, 105, 218, 0.05), rgba(9, 105, 218, 0.02)) !important;
+  box-shadow: 0 0 0 1px var(--histofy-primary) !important;
+}
+
+.histofy-radio-label {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+}
+
+.histofy-radio-custom {
+  width: 20px !important;
+  height: 20px !important;
+  border: 2px solid var(--histofy-border) !important;
+  border-radius: 50% !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+.histofy-radio-label input[type="radio"] {
+  display: none !important;
+}
+
+.histofy-radio-label input[type="radio"]:checked + .histofy-radio-custom {
+  border-color: var(--histofy-primary) !important;
+  background: var(--histofy-primary) !important;
+}
+
+.histofy-radio-label input[type="radio"]:checked + .histofy-radio-custom::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: white !important;
+  border-radius: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.histofy-repo-details strong {
+  color: var(--histofy-text) !important;
+  font-weight: 600 !important;
+  display: block !important;
+  margin-bottom: 4px !important;
+}
+
+.histofy-repo-details p {
+  color: var(--histofy-text-secondary) !important;
+  font-size: 14px !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Repository Selector */
+.histofy-repo-selector {
+  margin-top: 16px !important;
+  padding: 16px !important;
+  background: var(--histofy-bg-secondary) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--histofy-border) !important;
+}
+
+.histofy-repo-selector label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: var(--histofy-text) !important;
+}
+
+.histofy-repo-selector select {
+  width: 100% !important;
+  margin-bottom: 12px !important;
+}
+
+/* New Repository Form */
+.histofy-new-repo-form {
+  margin-top: 16px !important;
+  padding: 20px !important;
+  background: var(--histofy-bg-secondary) !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--histofy-border) !important;
+}
+
+.histofy-form-group {
+  margin-bottom: 20px !important;
+}
+
+.histofy-form-group:last-child {
+  margin-bottom: 0 !important;
+}
+
+.histofy-form-group label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: var(--histofy-text) !important;
+  font-size: 14px !important;
+}
+
+.histofy-repo-name-input {
+  display: flex !important;
+  align-items: center !important;
+  background: var(--histofy-bg) !important;
+  border: 2px solid var(--histofy-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  transition: border-color 0.2s ease !important;
+}
+
+.histofy-repo-name-input:focus-within {
+  border-color: var(--histofy-primary) !important;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
+}
+
+.histofy-repo-owner {
+  padding: 0 12px !important;
+  color: var(--histofy-text-secondary) !important;
+  font-weight: 500 !important;
+  background: var(--histofy-bg-secondary) !important;
+  border-right: 1px solid var(--histofy-border) !important;
+  white-space: nowrap !important;
+}
+
+.histofy-repo-name-input input {
+  flex: 1 !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 12px !important;
+  font-family: var(--histofy-font) !important;
+  font-size: 14px !important;
+  color: var(--histofy-text) !important;
+}
+
+.histofy-repo-name-input input:focus {
+  outline: none !important;
+}
+
+.histofy-repo-name-input button {
+  border: none !important;
+  border-left: 1px solid var(--histofy-border) !important;
+  background: var(--histofy-bg-secondary) !important;
+  padding: 12px 16px !important;
+  color: var(--histofy-primary) !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+  font-weight: 500 !important;
+}
+
+.histofy-repo-name-input button:hover {
+  background: var(--histofy-primary) !important;
+  color: white !important;
+}
+
+.histofy-repo-name-status {
+  margin-top: 8px !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.histofy-repo-name-status.available {
+  background: rgba(26, 127, 55, 0.1) !important;
+  color: var(--histofy-success) !important;
+  border: 1px solid rgba(26, 127, 55, 0.2) !important;
+}
+
+.histofy-repo-name-status.unavailable {
+  background: rgba(209, 36, 47, 0.1) !important;
+  color: var(--histofy-warning) !important;
+  border: 1px solid rgba(209, 36, 47, 0.2) !important;
+}
+
+/* Visibility Options */
+.histofy-visibility-options {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.histofy-visibility-option {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border: 2px solid var(--histofy-border) !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  background: var(--histofy-bg) !important;
+}
+
+.histofy-visibility-option:hover {
+  border-color: var(--histofy-primary) !important;
+  background: var(--histofy-bg-secondary) !important;
+}
+
+.histofy-visibility-option:has(input:checked) {
+  border-color: var(--histofy-primary) !important;
+  background: linear-gradient(135deg, rgba(9, 105, 218, 0.05), rgba(9, 105, 218, 0.02)) !important;
+}
+
+.histofy-visibility-option input[type="radio"] {
+  display: none !important;
+}
+
+.histofy-visibility-icon {
+  font-size: 20px !important;
+  margin-top: 2px !important;
+}
+
+.histofy-visibility-details strong {
+  color: var(--histofy-text) !important;
+  font-weight: 600 !important;
+  display: block !important;
+  margin-bottom: 4px !important;
+}
+
+.histofy-visibility-details p {
+  color: var(--histofy-text-secondary) !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Repository Info Card */
+.histofy-repo-info {
+  margin-top: 16px !important;
+}
+
+.histofy-info-card {
+  padding: 16px !important;
+  background: linear-gradient(135deg, rgba(26, 127, 55, 0.05), rgba(26, 127, 55, 0.02)) !important;
+  border: 1px solid rgba(26, 127, 55, 0.2) !important;
+  border-radius: 12px !important;
+  border-left: 4px solid var(--histofy-success) !important;
+}
+
+.histofy-info-card h5 {
+  margin: 0 0 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--histofy-success) !important;
+}
+
+.histofy-info-card ul {
+  margin: 0 !important;
+  padding-left: 20px !important;
+  color: var(--histofy-text-secondary) !important;
+}
+
+.histofy-info-card li {
+  margin-bottom: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+/* Changes List */
+.histofy-changes-list {
+  padding: 20px 24px !important;
+  border-bottom: 1px solid var(--histofy-border) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+/* Deploy Actions */
+.histofy-deploy-actions {
+  padding: 20px 24px !important;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: flex-end !important;
+  background: var(--histofy-bg-secondary) !important;
+}
+
+.histofy-deploy-actions .histofy-btn {
+  min-width: 120px !important;
+  justify-content: center !important;
+}
+
+/* Deploy Status */
+.histofy-deploy-status {
+  padding: 20px 24px !important;
+  background: var(--histofy-bg-secondary) !important;
+  border-top: 1px solid var(--histofy-border) !important;
+}
+
+/* Input Styles */
+.histofy-input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  border: 2px solid var(--histofy-border) !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-family: var(--histofy-font) !important;
+  background: var(--histofy-bg) !important;
+  color: var(--histofy-text) !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+.histofy-input:focus {
+  outline: none !important;
+  border-color: var(--histofy-primary) !important;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1) !important;
+}
+
+.histofy-input::placeholder {
+  color: var(--histofy-text-secondary) !important;
+}
+
+/* Button Styles */
+.histofy-btn {
+  padding: 12px 20px !important;
+  border: 2px solid transparent !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  font-family: var(--histofy-font) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+.histofy-btn-primary {
+  background: var(--histofy-primary) !important;
+  color: white !important;
+  border-color: var(--histofy-primary) !important;
+}
+
+.histofy-btn-primary:hover {
+  background: #0860ca !important;
+  border-color: #0860ca !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(9, 105, 218, 0.3) !important;
+}
+
+.histofy-btn-secondary {
+  background: var(--histofy-bg) !important;
+  color: var(--histofy-text) !important;
+  border-color: var(--histofy-border) !important;
+}
+
+.histofy-btn-secondary:hover {
+  background: var(--histofy-bg-secondary) !important;
+  border-color: var(--histofy-primary) !important;
+  color: var(--histofy-primary) !important;
+  transform: translateY(-1px) !important;
+}
+
+.histofy-btn-danger {
+  background: var(--histofy-warning) !important;
+  color: white !important;
+  border-color: var(--histofy-warning) !important;
+}
+
+.histofy-btn-danger:hover {
+  background: #b91c26 !important;
+  border-color: #b91c26 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(209, 36, 47, 0.3) !important;
+}
+
+.histofy-btn-warning {
+  background: #fb8500 !important;
+  color: white !important;
+  border-color: #fb8500 !important;
+}
+
+.histofy-btn-warning:hover {
+  background: #e07600 !important;
+  border-color: #e07600 !important;
+  transform: translateY(-1px) !important;
+}
+
+.histofy-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+.histofy-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Mobile responsiveness for deploy panel */
+@media (max-width: 768px) {
+  .histofy-deploy-panel {
+    bottom: 70px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 60vh !important;
+  }
+  
+  .histofy-deploy-header,
+  .histofy-auth-section,
+  .histofy-repository-section,
+  .histofy-changes-list,
+  .histofy-deploy-actions {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  .histofy-deploy-actions {
+    flex-direction: column !important;
+  }
+  
+  .histofy-repo-options {
+    gap: 8px !important;
+  }
+  
+  .histofy-repo-option {
+    padding: 12px !important;
+  }
+  
+  .histofy-visibility-options {
+    gap: 8px !important;
+  }
+  
+  .histofy-visibility-option {
+    padding: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .histofy-deploy-panel {
+    position: fixed !important;
+    bottom: 70px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-height: 50vh !important;
+  }
+  
+  .histofy-deploy-header h3 {
+    font-size: 16px !important;
+  }
+  
+  .histofy-form-group {
+    margin-bottom: 16px !important;
+  }
+  
+  .histofy-repo-name-input {
+    flex-direction: column !important;
+  }
+  
+  .histofy-repo-owner {
+    border-right: none !important;
+    border-bottom: 1px solid var(--histofy-border) !important;
+    padding: 8px 12px !important;
+  }
+  
+  .histofy-repo-name-input button {
+    border-left: none !important;
+    border-top: 1px solid var(--histofy-border) !important;
+  }
+}
 
 /* Notifications */
 .histofy-notification {
@@ -501,14 +1027,6 @@ body[data-color-mode="light"] .histofy-deploy-button {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .histofy-instruction-panel {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    width: auto;
-    max-width: none;
-  }
-  
   .histofy-deploy-panel {
     bottom: 70px;
     right: 10px;
@@ -525,15 +1043,6 @@ body[data-color-mode="light"] .histofy-deploy-button {
 
 /* Stack panels vertically on very small screens */
 @media (max-width: 480px) {
-  .histofy-instruction-panel {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    max-height: 40vh;
-  }
-  
   .histofy-deploy-panel {
     position: fixed;
     bottom: 70px;
@@ -572,7 +1081,7 @@ body[data-color-mode="light"] .histofy-deploy-button {
 }
 
 /* Block GitHub's default contribution tile behavior when Histofy is active */
-.histofy-instruction-panel ~ * [data-date][data-histofy-active="true"] {
+[data-date][data-histofy-active="true"] {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -604,7 +1113,7 @@ body[data-color-mode="light"] .histofy-deploy-button {
 }
 
 /* Prevent any GitHub tooltips or overlays from interfering */
-.histofy-instruction-panel ~ * .Tooltip,
-.histofy-instruction-panel ~ * [role="tooltip"] {
+.Tooltip,
+[role="tooltip"] {
   display: none !important;
 }

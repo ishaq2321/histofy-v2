@@ -194,7 +194,7 @@ class GitHubDeployer {
           name: finalRepoName,
           description: options.description || `Custom GitHub contribution pattern created with Histofy on ${new Date().toISOString().split('T')[0]}`,
           private: options.private || false,
-          auto_init: true,
+          auto_init: false, // Don't auto-initialize to prevent unwanted initial commit on current date
           default_branch: 'main', // Ensure we use 'main' as default branch for contribution counting
           has_issues: false,
           has_projects: false,
@@ -255,56 +255,89 @@ class GitHubDeployer {
     // Sort dates chronologically
     const sortedDates = dates.sort((a, b) => new Date(a) - new Date(b));
 
-    // Get the current HEAD of the branch
-    let currentSha = await this.getBranchHead(owner, repo, baseBranch);
+    // Get the current HEAD of the branch, or null if repository is empty
+    let currentSha;
+    try {
+      currentSha = await this.getBranchHead(owner, repo, baseBranch);
+    } catch (error) {
+      // Repository is empty (no initial commit) - we'll create the first commit manually
+      if (error.message.includes('404')) {
+        this.log('info', 'Repository is empty - will create initial commit with first historical date');
+        currentSha = null;
+      } else {
+        throw error;
+      }
+    }
     
-    // Create commits for each date
-    for (let i = 0; i < sortedDates.length; i++) {
-      const date = sortedDates[i];
-      
-      try {
-        // Get contribution level for this date
-        const contribution = contributions[date] || { level: 1, name: 'Low', commits: '1-3' };
-        
-        // Create commits based on contribution level
-        const commitsToCreate = this.getCommitCountForLevel(contribution.level);
-        
-        for (let commitIndex = 0; commitIndex < commitsToCreate; commitIndex++) {
-          const commitSha = await this.createSingleCommit(
+    // Batch process for performance - process dates in smaller chunks
+    const BATCH_SIZE = 10;
+    const batches = [];
+    for (let i = 0; i < sortedDates.length; i += BATCH_SIZE) {
+      batches.push(sortedDates.slice(i, i + BATCH_SIZE));
+    }
+
+    let processedDates = 0;
+    const totalDates = sortedDates.length;
+
+    for (const batch of batches) {
+      this.updateStatus(`Processing batch ${Math.floor(processedDates / BATCH_SIZE) + 1}/${batches.length}...`, 
+        20 + (processedDates / totalDates) * 60);
+
+      // Process batch sequentially to maintain commit order
+      for (const date of batch) {
+        try {
+          // Get contribution level for this date
+          const contribution = contributions[date] || { level: 1, name: 'Low', commits: '1-3' };
+          
+          // Create commits based on contribution level
+          const commitsToCreate = this.getCommitCountForLevel(contribution.level);
+          
+          // Optimize: Create multiple commits for the same date more efficiently
+          const commitShas = await this.createCommitsBatch(
             owner, 
             repo, 
             date, 
             currentSha, 
-            commitIndex + 1, 
             commitsToCreate,
             contribution
           );
           
-          if (commitSha) {
-            currentSha = commitSha; // Use this commit as parent for next one
-            results.successful.push({
-              date: date,
-              sha: commitSha,
-              contribution: contribution,
-              commitNumber: commitIndex + 1
-            });
-          }
+          // Update results and current SHA
+          commitShas.forEach((sha, index) => {
+            if (sha) {
+              currentSha = sha;
+              results.successful.push({
+                date: date,
+                sha: sha,
+                contribution: contribution,
+                commitNumber: index + 1
+              });
+            }
+          });
+
+          this.log('info', `Created ${commitsToCreate} commit(s) for ${date} (${contribution.name} level)`);
+          processedDates++;
+
+        } catch (error) {
+          this.log('error', `Failed to create commit for ${date}: ${error.message}`);
+          results.failed.push({
+            date: date,
+            error: error.message
+          });
+          processedDates++;
         }
+      }
 
-        this.log('info', `Created ${commitsToCreate} commit(s) for ${date} (${contribution.name} level)`);
-
-      } catch (error) {
-        this.log('error', `Failed to create commit for ${date}: ${error.message}`);
-        results.failed.push({
-          date: date,
-          error: error.message
-        });
+      // Small delay between batches to avoid rate limiting
+      if (batches.length > 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
     // Update the branch to point to the latest commit
     if (results.successful.length > 0) {
       try {
+        this.updateStatus('Finalizing deployment...', 85);
         await this.updateBranchHead(owner, repo, baseBranch, currentSha);
         this.log('success', `Updated ${baseBranch} branch with ${results.successful.length} new commits`);
       } catch (error) {
@@ -486,6 +519,263 @@ class GitHubDeployer {
     }
 
     return await response.json();
+  }
+
+  // Optimized batch commit creation for better performance
+  async createCommitsBatch(owner, repo, date, parentSha, commitCount, contribution) {
+    const commitShas = [];
+    let currentParentSha = parentSha;
+
+    // Pre-create file content for all commits to avoid redundant work
+    const baseContent = await this.generateFileContent(owner, repo, date, 1, commitCount, contribution);
+    
+    try {
+      // Create all commits for this date in sequence
+      for (let i = 1; i <= commitCount; i++) {
+        // Use optimized commit creation with cached content
+        const commitSha = await this.createOptimizedCommit(
+          owner, 
+          repo, 
+          date, 
+          currentParentSha, 
+          i, 
+          commitCount, 
+          contribution,
+          baseContent
+        );
+        
+        if (commitSha) {
+          commitShas.push(commitSha);
+          currentParentSha = commitSha;
+        } else {
+          throw new Error(`Failed to create commit ${i} for ${date}`);
+        }
+      }
+    } catch (error) {
+      this.log('error', `Batch commit creation failed: ${error.message}`);
+      throw error;
+    }
+
+    return commitShas;
+  }
+
+  // Optimized single commit creation with reduced API calls
+  async createOptimizedCommit(owner, repo, date, parentSha, commitNumber, totalCommits, contribution, baseContent) {
+    try {
+      let baseTreeSha = null;
+      
+      if (parentSha) {
+        // Use cached parent commit info when possible
+        const parentCommit = await this.getCommitCached(owner, repo, parentSha);
+        baseTreeSha = parentCommit.tree.sha;
+      }
+      // If parentSha is null, this is the first commit in an empty repository
+      // baseTreeSha will remain null, creating a new tree from scratch
+
+      // Generate unique content for each commit to avoid identical trees
+      const fileName = `contributions.md`;
+      const fileContent = this.generateUniqueContent(baseContent, commitNumber, date);
+      
+      // Create blob with optimized encoding
+      const blobSha = await this.createBlobOptimized(owner, repo, fileContent);
+
+      // Create tree with optimized structure
+      const treeSha = await this.createTreeOptimized(owner, repo, baseTreeSha, fileName, blobSha);
+
+      // Create commit with optimized message and metadata
+      const commitMessage = this.generateOptimizedCommitMessage(date, commitNumber, totalCommits, contribution);
+      const commitSha = await this.createCommitObjectOptimized(
+        owner, 
+        repo, 
+        commitMessage, 
+        treeSha, 
+        parentSha, 
+        date
+      );
+
+      return commitSha;
+
+    } catch (error) {
+      this.log('error', `Failed to create optimized commit: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Cached commit retrieval to reduce API calls
+  async getCommitCached(owner, repo, sha) {
+    // Simple in-memory cache for parent commits
+    if (!this.commitCache) {
+      this.commitCache = new Map();
+    }
+
+    const cacheKey = `${owner}/${repo}/${sha}`;
+    if (this.commitCache.has(cacheKey)) {
+      return this.commitCache.get(cacheKey);
+    }
+
+    const commit = await this.getCommit(owner, repo, sha);
+    this.commitCache.set(cacheKey, commit);
+    
+    // Limit cache size to prevent memory issues
+    if (this.commitCache.size > 100) {
+      const firstKey = this.commitCache.keys().next().value;
+      this.commitCache.delete(firstKey);
+    }
+
+    return commit;
+  }
+
+  // Optimized blob creation with better encoding
+  async createBlobOptimized(owner, repo, content) {
+    try {
+      // Use more efficient base64 encoding
+      const base64Content = btoa(unescape(encodeURIComponent(content)));
+      
+      const response = await this.api.makeRequest(`/repos/${owner}/${repo}/git/blobs`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          content: base64Content,
+          encoding: 'base64'
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.sha;
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Failed to create blob: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      this.log('error', `Blob creation failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Optimized tree creation
+  async createTreeOptimized(owner, repo, baseTreeSha, fileName, blobSha) {
+    try {
+      const response = await this.api.makeRequest(`/repos/${owner}/${repo}/git/trees`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          base_tree: baseTreeSha,
+          tree: [
+            {
+              path: fileName,
+              mode: '100644',
+              type: 'blob',
+              sha: blobSha
+            }
+          ]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.sha;
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Failed to create tree: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      this.log('error', `Tree creation failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Optimized commit object creation with cached user info
+  async createCommitObjectOptimized(owner, repo, message, treeSha, parentSha, date) {
+    try {
+      // Cache user info to avoid repeated API calls
+      if (!this.cachedUser) {
+        this.cachedUser = await this.api.getCurrentUser();
+      }
+      
+      // Ensure date is in UTC and properly formatted for GitHub
+      const utcDate = new Date(date + 'T12:00:00.000Z');
+      const gitDate = utcDate.toISOString();
+      
+      const userEmail = this.cachedUser.email || `${this.cachedUser.login}@users.noreply.github.com`;
+      const userName = this.cachedUser.name || this.cachedUser.login || 'Histofy User';
+      
+      const response = await this.api.makeRequest(`/repos/${owner}/${repo}/git/commits`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          message: message,
+          tree: treeSha,
+          parents: [parentSha],
+          author: {
+            name: userName,
+            email: userEmail,
+            date: gitDate
+          },
+          committer: {
+            name: userName,
+            email: userEmail,
+            date: gitDate
+          }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.sha;
+      } else {
+        const errorData = await response.json();
+        throw new Error(`Failed to create commit: ${errorData.message}`);
+      }
+    } catch (error) {
+      this.log('error', `Commit object creation failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Generate unique content for each commit to avoid identical trees
+  generateUniqueContent(baseContent, commitNumber, date) {
+    const timestamp = Date.now();
+    const uniqueId = Math.random().toString(36).substring(2, 15);
+    
+    return `${baseContent}
+
+<!-- Commit ${commitNumber} for ${date} -->
+<!-- Generated at: ${new Date().toISOString()} -->
+<!-- Unique ID: ${uniqueId}_${timestamp} -->
+`;
+  }
+
+  // Generate optimized commit messages
+  generateOptimizedCommitMessage(date, commitNumber, totalCommits, contribution) {
+    const messages = [
+      `Update contribution pattern for ${date}`,
+      `Add ${contribution.name.toLowerCase()} activity for ${date}`,
+      `Contribute to project on ${date}`,
+      `Development work on ${date}`,
+      `Code updates for ${date}`,
+      `Feature work on ${date}`,
+      `Project maintenance on ${date}`,
+      `Documentation updates for ${date}`
+    ];
+    
+    // Use different messages to make commits look more natural
+    const baseMessage = messages[commitNumber % messages.length];
+    
+    if (totalCommits > 1) {
+      return `${baseMessage} (${commitNumber}/${totalCommits})`;
+    }
+    
+    return baseMessage;
   }
 
   // Helper functions

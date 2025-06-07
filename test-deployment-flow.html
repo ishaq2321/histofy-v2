@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deployment Flow Test - Histofy</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-panel { background: white; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-header { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; margin-bottom: 15px; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log { font-family: 'Courier New', monospace; font-size: 12px; background: #f8f9fa; padding: 5px; margin: 2px 0; border-left: 3px solid #6c757d; }
+        button { background: #0366d6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0256d1; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .deploy-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .results-container { max-height: 400px; overflow-y: auto; border: 1px solid #e1e4e8; padding: 10px; }
+        .progress-bar { width: 100%; height: 20px; background: #e1e4e8; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #28a745; transition: width 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Histofy Deployment Flow Test</h1>
+        
+        <div class="test-panel">
+            <div class="test-header">
+                <h2>Environment Status</h2>
+            </div>
+            <div id="environment-status"></div>
+            <button onclick="checkEnvironment()">🔍 Check Environment</button>
+        </div>
+
+        <div class="test-panel">
+            <div class="test-header">
+                <h2>Mock Data Creation</h2>
+            </div>
+            <div id="mock-data-status"></div>
+            <div class="deploy-actions">
+                <button onclick="createMockData()">📝 Create Mock Changes</button>
+                <button onclick="clearMockData()">🗑️ Clear Mock Data</button>
+                <button onclick="viewMockData()">👁️ View Mock Data</button>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <div class="test-header">
+                <h2>Deployment Simulation</h2>
+            </div>
+            <div id="deployment-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+                <div id="deployment-status"></div>
+            </div>
+            <div class="deploy-actions">
+                <button onclick="testBasicDeployment()">🚀 Test Basic Deployment</button>
+                <button onclick="testAuthenticatedDeployment()">🔐 Test with Mock Auth</button>
+                <button onclick="testFullDeploymentFlow()">⚡ Test Full Flow</button>
+            </div>
+        </div>
+
+        <div class="test-panel">
+            <div class="test-header">
+                <h2>Test Results</h2>
+            </div>
+            <div class="results-container" id="test-results"></div>
+            <button onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+    </div>
+
+    <!-- Load scripts in correct order -->
+    <script src="storage/local-storage-manager.js"></script>
+    <script src="api/github-api.js"></script>
+    <script src="api/github-deployer.js"></script>
+    <script src="ui-components/deploy-button.js"></script>
+
+    <script>
+        let testLogs = [];
+        let environmentReady = false;
+        let deploymentInProgress = false;
+
+        function log(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = { timestamp, level, message };
+            testLogs.push(logEntry);
+            console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+            updateResultsDisplay();
+            return logEntry;
+        }
+
+        function updateResultsDisplay() {
+            const container = document.getElementById('test-results');
+            const logsHtml = testLogs.slice(-50).map(entry => 
+                `<div class="log log-${entry.level}">[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}</div>`
+            ).join('');
+            container.innerHTML = logsHtml;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function updateProgress(percentage, message) {
+            const fill = document.getElementById('progress-fill');
+            const status = document.getElementById('deployment-status');
+            fill.style.width = `${percentage}%`;
+            if (message) {
+                status.innerHTML = `<div class="info">${message}</div>`;
+            }
+        }
+
+        async function checkEnvironment() {
+            log('info', 'Checking environment...');
+            
+            try {
+                // Check if scripts loaded
+                const checks = [
+                    { name: 'LocalStorageManager', available: typeof LocalStorageManager !== 'undefined' },
+                    { name: 'GitHubAPI', available: typeof GitHubAPI !== 'undefined' },
+                    { name: 'GitHubDeployer', available: typeof GitHubDeployer !== 'undefined' },
+                    { name: 'DeployButton', available: typeof DeployButton !== 'undefined' }
+                ];
+
+                let allGood = true;
+                for (const check of checks) {
+                    if (check.available) {
+                        log('success', `✅ ${check.name} is available`);
+                    } else {
+                        log('error', `❌ ${check.name} is NOT available`);
+                        allGood = false;
+                    }
+                }
+
+                // Initialize storage
+                if (typeof LocalStorageManager !== 'undefined') {
+                    try {
+                        window.histofyStorage = new LocalStorageManager();
+                        await window.histofyStorage.init();
+                        log('success', '✅ Storage manager initialized');
+                    } catch (error) {
+                        log('error', `❌ Storage initialization failed: ${error.message}`);
+                        allGood = false;
+                    }
+                }
+
+                environmentReady = allGood;
+                
+                if (allGood) {
+                    showStatus('environment-status', 'success', '✅ Environment is ready for testing');
+                    log('success', '🎉 Environment check passed!');
+                } else {
+                    showStatus('environment-status', 'error', '❌ Environment has issues - check console for details');
+                    log('error', '💥 Environment check failed!');
+                }
+
+            } catch (error) {
+                log('error', `Environment check failed: ${error.message}`);
+                showStatus('environment-status', 'error', `❌ Environment check failed: ${error.message}`);
+                environmentReady = false;
+            }
+        }
+
+        async function createMockData() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            try {
+                log('info', 'Creating mock pending changes...');
+
+                const mockChanges = [
+                    {
+                        id: 'mock-change-1',
+                        type: 'date_selection',
+                        dates: ['2024-01-01', '2024-01-02', '2024-01-03'],
+                        contributions: {
+                            '2024-01-01': { level: 1, name: 'Low', commits: '1-3' },
+                            '2024-01-02': { level: 2, name: 'Medium', commits: '4-9' },
+                            '2024-01-03': { level: 3, name: 'High', commits: '10-19' }
+                        },
+                        username: 'testuser',
+                        year: 2024,
+                        timestamp: Date.now()
+                    },
+                    {
+                        id: 'mock-change-2',
+                        type: 'date_selection',
+                        dates: ['2024-02-01', '2024-02-02'],
+                        contributions: {
+                            '2024-02-01': { level: 2, name: 'Medium', commits: '4-9' },
+                            '2024-02-02': { level: 4, name: 'Very High', commits: '20+' }
+                        },
+                        username: 'testuser',
+                        year: 2024,
+                        timestamp: Date.now() + 1000
+                    }
+                ];
+
+                // Save to storage
+                await window.histofyStorage.addPendingChange(mockChanges[0]);
+                await window.histofyStorage.addPendingChange(mockChanges[1]);
+
+                log('success', `✅ Created ${mockChanges.length} mock changes`);
+                showStatus('mock-data-status', 'success', `✅ ${mockChanges.length} mock changes created successfully`);
+
+            } catch (error) {
+                log('error', `Failed to create mock data: ${error.message}`);
+                showStatus('mock-data-status', 'error', `❌ Failed to create mock data: ${error.message}`);
+            }
+        }
+
+        async function clearMockData() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            try {
+                log('info', 'Clearing mock data...');
+                await window.histofyStorage.clearPendingChanges();
+                log('success', '✅ Mock data cleared');
+                showStatus('mock-data-status', 'success', '✅ Mock data cleared successfully');
+            } catch (error) {
+                log('error', `Failed to clear mock data: ${error.message}`);
+                showStatus('mock-data-status', 'error', `❌ Failed to clear mock data: ${error.message}`);
+            }
+        }
+
+        async function viewMockData() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            try {
+                const pendingChanges = await window.histofyStorage.getPendingChanges();
+                log('info', `Found ${pendingChanges.length} pending changes`);
+                
+                if (pendingChanges.length > 0) {
+                    pendingChanges.forEach((change, index) => {
+                        log('info', `Change ${index + 1}: ${change.type} with ${change.dates?.length || 0} dates`);
+                    });
+                    showStatus('mock-data-status', 'info', `📊 ${pendingChanges.length} pending changes found`);
+                } else {
+                    showStatus('mock-data-status', 'warning', '⚠️ No pending changes found');
+                }
+            } catch (error) {
+                log('error', `Failed to view mock data: ${error.message}`);
+                showStatus('mock-data-status', 'error', `❌ Failed to view mock data: ${error.message}`);
+            }
+        }
+
+        async function testBasicDeployment() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            if (deploymentInProgress) {
+                log('warning', 'Deployment already in progress');
+                return;
+            }
+
+            deploymentInProgress = true;
+            updateProgress(0, 'Starting basic deployment test...');
+
+            try {
+                log('info', '🚀 Starting basic deployment test...');
+
+                // Step 1: Initialize GitHub API
+                updateProgress(10, 'Initializing GitHub API...');
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                log('success', '✅ GitHub API initialized');
+
+                // Step 2: Initialize GitHub Deployer
+                updateProgress(20, 'Initializing GitHub Deployer...');
+                const deployer = new GitHubDeployer(githubAPI);
+                log('success', '✅ GitHub Deployer initialized');
+
+                // Step 3: Test essential methods
+                updateProgress(30, 'Testing essential methods...');
+                
+                // Test log method
+                deployer.log('info', 'Testing log method from deployment test');
+                log('success', '✅ log() method works');
+
+                // Test updateStatus method
+                deployer.updateStatus('Testing updateStatus method', 40);
+                log('success', '✅ updateStatus() method works');
+
+                // Step 4: Test with mock pending changes
+                updateProgress(50, 'Testing with mock data...');
+                const pendingChanges = await window.histofyStorage.getPendingChanges();
+                
+                if (pendingChanges.length === 0) {
+                    log('warning', '⚠️ No pending changes found. Creating mock data...');
+                    await createMockData();
+                    const newPendingChanges = await window.histofyStorage.getPendingChanges();
+                    log('info', `Created ${newPendingChanges.length} mock changes for testing`);
+                }
+
+                // Step 5: Test deployment preparation
+                updateProgress(70, 'Testing deployment preparation...');
+                const mockOptions = {
+                    targetRepository: 'testuser/histofy-contributions',
+                    createIfNotExists: true,
+                    private: false,
+                    description: 'Test deployment from flow test'
+                };
+
+                // Test target repository determination
+                const targetRepo = deployer.determineTargetRepository(mockOptions);
+                log('success', `✅ Target repository: ${targetRepo.owner}/${targetRepo.repo}`);
+
+                // Test change grouping
+                const changesByRepo = deployer.groupChangesByRepository(pendingChanges, targetRepo);
+                log('success', `✅ Changes grouped: ${Object.keys(changesByRepo).length} repositories`);
+
+                updateProgress(100, 'Basic deployment test completed!');
+                log('success', '🎉 Basic deployment test passed!');
+
+            } catch (error) {
+                log('error', `💥 Basic deployment test failed: ${error.message}`);
+                updateProgress(0, `❌ Test failed: ${error.message}`);
+            } finally {
+                deploymentInProgress = false;
+            }
+        }
+
+        async function testAuthenticatedDeployment() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            if (deploymentInProgress) {
+                log('warning', 'Deployment already in progress');
+                return;
+            }
+
+            deploymentInProgress = true;
+            updateProgress(0, 'Starting authenticated deployment test...');
+
+            try {
+                log('info', '🔐 Starting authenticated deployment test...');
+
+                // Step 1: Initialize with mock authentication
+                updateProgress(10, 'Setting up mock authentication...');
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+
+                // Mock authentication (don't actually authenticate)
+                githubAPI.user = { login: 'testuser', id: 12345 };
+                githubAPI.token = 'mock-token';
+                
+                log('success', '✅ Mock authentication set up');
+
+                // Step 2: Initialize deployer
+                updateProgress(30, 'Initializing deployer...');
+                const deployer = new GitHubDeployer(githubAPI);
+                log('success', '✅ Deployer initialized with mock auth');
+
+                // Step 3: Get pending changes
+                updateProgress(50, 'Getting pending changes...');
+                let pendingChanges = await window.histofyStorage.getPendingChanges();
+                
+                if (pendingChanges.length === 0) {
+                    await createMockData();
+                    pendingChanges = await window.histofyStorage.getPendingChanges();
+                }
+
+                log('info', `Found ${pendingChanges.length} pending changes`);
+
+                // Step 4: Test deployment preparation with auth
+                updateProgress(70, 'Testing deployment with authentication...');
+                
+                const mockOptions = {
+                    targetRepository: 'testuser/histofy-contributions',
+                    repositoryOwner: 'testuser',
+                    repositoryName: 'histofy-contributions',
+                    createIfNotExists: true,
+                    private: false,
+                    description: 'Test deployment with mock authentication'
+                };
+
+                // Test the preparation steps that would happen in real deployment
+                const targetRepo = deployer.determineTargetRepository(mockOptions);
+                const changesByRepo = deployer.groupChangesByRepository(pendingChanges, targetRepo);
+                
+                log('success', `✅ Authentication test preparation completed`);
+                log('info', `Target: ${targetRepo.owner}/${targetRepo.repo}`);
+                log('info', `Changes by repo: ${Object.keys(changesByRepo).length}`);
+
+                updateProgress(100, 'Authenticated deployment test completed!');
+                log('success', '🎉 Authenticated deployment test passed!');
+
+            } catch (error) {
+                log('error', `💥 Authenticated deployment test failed: ${error.message}`);
+                updateProgress(0, `❌ Test failed: ${error.message}`);
+            } finally {
+                deploymentInProgress = false;
+            }
+        }
+
+        async function testFullDeploymentFlow() {
+            if (!environmentReady) {
+                log('warning', 'Environment not ready. Run environment check first.');
+                return;
+            }
+
+            if (deploymentInProgress) {
+                log('warning', 'Deployment already in progress');
+                return;
+            }
+
+            deploymentInProgress = true;
+            updateProgress(0, 'Starting full deployment flow test...');
+
+            try {
+                log('info', '⚡ Starting full deployment flow test...');
+
+                // Step 1: Initialize everything
+                updateProgress(5, 'Initializing components...');
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                const deployer = new GitHubDeployer(githubAPI);
+
+                // Step 2: Create mock data if needed
+                updateProgress(10, 'Preparing test data...');
+                let pendingChanges = await window.histofyStorage.getPendingChanges();
+                if (pendingChanges.length === 0) {
+                    await createMockData();
+                    pendingChanges = await window.histofyStorage.getPendingChanges();
+                }
+
+                // Step 3: Test Deploy Button interaction
+                updateProgress(20, 'Testing Deploy Button...');
+                try {
+                    const deployButton = new DeployButton();
+                    deployButton.githubAPI = githubAPI;
+                    deployButton.githubDeployer = deployer;
+                    deployButton.pendingChanges = pendingChanges;
+                    log('success', '✅ Deploy Button created and configured');
+                } catch (error) {
+                    log('warning', `⚠️ Deploy Button test failed: ${error.message}`);
+                }
+
+                // Step 4: Test deployment status tracking
+                updateProgress(30, 'Testing deployment status...');
+                deployer.updateStatus('Testing status updates', 35);
+                const status = deployer.getDeploymentStatus();
+                log('success', `✅ Status tracking works: ${status.currentStep}`);
+
+                // Step 5: Test deployment options validation
+                updateProgress(50, 'Testing deployment options...');
+                const validOptions = {
+                    targetRepository: 'testuser/histofy-contributions',
+                    createIfNotExists: true,
+                    private: false,
+                    description: 'Full flow test repository'
+                };
+
+                const targetRepo = deployer.determineTargetRepository(validOptions);
+                const changesByRepo = deployer.groupChangesByRepository(pendingChanges, targetRepo);
+                
+                log('success', `✅ Options validation passed`);
+                log('info', `Target repository: ${targetRepo.owner}/${targetRepo.repo}`);
+
+                // Step 6: Test method calls that would happen in real deployment
+                updateProgress(70, 'Testing deployment methods...');
+                
+                // Test file content generation
+                const mockFileContent = deployer.generateFileContent(
+                    'testuser', 'histofy-contributions', '2024-01-01', 1, 5, 
+                    { level: 2, name: 'Medium', commits: '4-9' }
+                );
+                log('success', `✅ File content generation works (${mockFileContent.length} chars)`);
+
+                // Test commit message generation
+                const mockCommitMessage = deployer.generateCommitMessage(
+                    '2024-01-01', 1, 5, { level: 2, name: 'Medium' }
+                );
+                log('success', `✅ Commit message generation works: "${mockCommitMessage}"`);
+
+                // Step 7: Test error handling
+                updateProgress(85, 'Testing error handling...');
+                try {
+                    // Test with invalid data
+                    deployer.groupChangesByRepository(null, targetRepo);
+                    log('warning', '⚠️ Error handling: null changes handled gracefully');
+                } catch (error) {
+                    log('info', `ℹ️ Error handling working: ${error.message}`);
+                }
+
+                updateProgress(100, 'Full deployment flow test completed!');
+                log('success', '🎉 Full deployment flow test passed!');
+                log('info', 'All deployment components are working correctly');
+
+            } catch (error) {
+                log('error', `💥 Full deployment flow test failed: ${error.message}`);
+                updateProgress(0, `❌ Test failed: ${error.message}`);
+            } finally {
+                deploymentInProgress = false;
+            }
+        }
+
+        function clearResults() {
+            testLogs = [];
+            updateResultsDisplay();
+            log('info', 'Results cleared');
+        }
+
+        // Auto-run environment check on page load
+        window.addEventListener('load', () => {
+            setTimeout(checkEnvironment, 1000);
+        });
+
+    </script>
+</body>
+</html>

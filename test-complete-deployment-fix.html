@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Deployment Test - Histofy</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test-container { max-width: 1200px; margin: 0 auto; }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 20px; 
+            border: 1px solid #ddd; 
+            background: white; 
+            border-radius: 8px; 
+        }
+        .pass { color: #28a745; font-weight: bold; }
+        .fail { color: #dc3545; font-weight: bold; }
+        .info { color: #007bff; }
+        .warning { color: #ffc107; }
+        button { 
+            margin: 5px; 
+            padding: 12px 20px; 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .results { 
+            margin: 15px 0; 
+            padding: 15px; 
+            background: #f8f9fa; 
+            border-radius: 4px; 
+            max-height: 400px; 
+            overflow-y: auto; 
+        }
+        .log { 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            margin: 3px 0; 
+            padding: 4px 8px; 
+            border-radius: 3px; 
+        }
+        .log.pass { background: #d4edda; border-left: 4px solid #28a745; }
+        .log.fail { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .log.info { background: #d1ecf1; border-left: 4px solid #007bff; }
+        .log.warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .summary { 
+            background: #e9ecef; 
+            padding: 15px; 
+            border-radius: 4px; 
+            margin: 20px 0; 
+        }
+        .step-title { 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: #343a40; 
+            margin-bottom: 10px; 
+        }
+        .progress { 
+            width: 100%; 
+            height: 20px; 
+            background: #e9ecef; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            margin: 10px 0; 
+        }
+        .progress-bar { 
+            height: 100%; 
+            background: #007bff; 
+            transition: width 0.3s ease; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-size: 12px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🚀 Complete Deployment Flow Test</h1>
+        <p>This test simulates the entire deployment process to identify and fix issues.</p>
+        
+        <div class="summary" id="test-summary">
+            <div class="step-title">Test Progress</div>
+            <div class="progress">
+                <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+            </div>
+            <div id="current-step">Ready to start testing...</div>
+        </div>
+        
+        <div class="test-section">
+            <div class="step-title">1. Environment & Dependencies</div>
+            <button onclick="testEnvironment()">Test Environment</button>
+            <div class="results" id="environment-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">2. Storage System</div>
+            <button onclick="testStorage()">Test Storage System</button>
+            <div class="results" id="storage-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">3. Mock Data Creation</div>
+            <button onclick="createMockData()">Create Mock Data</button>
+            <div class="results" id="mock-data-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">4. Deploy Button Functionality</div>
+            <button onclick="testDeployButton()">Test Deploy Button</button>
+            <div class="results" id="deploy-button-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">5. Authentication Flow (Without Real Token)</div>
+            <button onclick="testAuthFlow()">Test Auth Flow</button>
+            <div class="results" id="auth-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">6. Deployment Logic Test</div>
+            <button onclick="testDeploymentLogic()">Test Deployment Logic</button>
+            <div class="results" id="deployment-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">7. Error Handling</div>
+            <button onclick="testErrorHandling()">Test Error Handling</button>
+            <div class="results" id="error-results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="step-title">8. Full Flow Simulation</div>
+            <button onclick="simulateFullFlow()">Simulate Full Deployment</button>
+            <div class="results" id="full-flow-results"></div>
+        </div>
+
+    </div>
+
+    <!-- Load required scripts -->
+    <script src="/storage/local-storage-manager.js"></script>
+    <script src="/api/github-api.js"></script>
+    <script src="/api/github-deployer.js"></script>
+    <script src="/ui-components/deploy-button.js"></script>
+
+    <script>
+        let testLogs = [];
+        let currentStep = 0;
+        let totalSteps = 8;
+        let testResults = {
+            environment: null,
+            storage: null,
+            mockData: null,
+            deployButton: null,
+            auth: null,
+            deployment: null,
+            errors: null,
+            fullFlow: null
+        };
+
+        function updateProgress(step) {
+            currentStep = step;
+            const progressBar = document.getElementById('progress-bar');
+            const currentStepDiv = document.getElementById('current-step');
+            const percentage = (step / totalSteps) * 100;
+            
+            progressBar.style.width = percentage + '%';
+            
+            const stepNames = [
+                'Ready to start...',
+                'Testing environment...',
+                'Testing storage...',
+                'Creating mock data...',
+                'Testing deploy button...',
+                'Testing authentication...',
+                'Testing deployment logic...',
+                'Testing error handling...',
+                'Running full flow simulation...'
+            ];
+            
+            currentStepDiv.textContent = stepNames[step] || 'Complete!';
+        }
+
+        function log(level, message, containerId = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            testLogs.push({ level, message: logEntry, containerId });
+            console.log(`[${level.toUpperCase()}] ${message}`);
+            
+            if (containerId) {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    const logDiv = document.createElement('div');
+                    logDiv.className = `log ${level}`;
+                    logDiv.textContent = logEntry;
+                    container.appendChild(logDiv);
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+            
+            return logEntry;
+        }
+
+        function clearResults(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+
+        async function testEnvironment() {
+            updateProgress(1);
+            clearResults('environment-results');
+            log('info', 'Starting environment test...', 'environment-results');
+            
+            const checks = [
+                { name: 'GitHubAPI', test: () => typeof GitHubAPI !== 'undefined' },
+                { name: 'GitHubDeployer', test: () => typeof GitHubDeployer !== 'undefined' },
+                { name: 'DeployButton', test: () => typeof DeployButton !== 'undefined' },
+                { name: 'LocalStorageManager', test: () => typeof LocalStorageManager !== 'undefined' },
+                { name: 'window.histofyStorage', test: () => typeof window.histofyStorage !== 'undefined' },
+                { name: 'window.histofyDeployButton', test: () => typeof window.histofyDeployButton !== 'undefined' },
+                { name: 'Chrome storage (simulated)', test: () => typeof chrome === 'undefined' } // Should be undefined in web context
+            ];
+
+            let passed = 0;
+            for (const check of checks) {
+                try {
+                    const result = check.test();
+                    const level = result ? 'pass' : 'fail';
+                    if (check.name === 'Chrome storage (simulated)') {
+                        // Chrome storage should be undefined in web context
+                        log('pass', `${check.name}: Correctly undefined in web context`, 'environment-results');
+                        passed++;
+                    } else if (result) {
+                        log('pass', `${check.name}: Available`, 'environment-results');
+                        passed++;
+                    } else {
+                        log('fail', `${check.name}: NOT Available`, 'environment-results');
+                    }
+                } catch (error) {
+                    log('fail', `${check.name}: Error - ${error.message}`, 'environment-results');
+                }
+            }
+
+            testResults.environment = passed === checks.length;
+            log('info', `Environment test completed: ${passed}/${checks.length} checks passed`, 'environment-results');
+        }
+
+        async function testStorage() {
+            updateProgress(2);
+            clearResults('storage-results');
+            log('info', 'Testing storage system...', 'storage-results');
+            
+            try {
+                if (!window.histofyStorage) {
+                    log('fail', 'histofyStorage not available', 'storage-results');
+                    testResults.storage = false;
+                    return;
+                }
+
+                // Test basic methods
+                const methods = [
+                    'getData',
+                    'saveData', 
+                    'getPendingChanges',
+                    'clearPendingChanges',
+                    'addPendingChange',
+                    'removePendingChange',
+                    'storePendingChange',
+                    'getUserSettings',
+                    'updateUserSettings'
+                ];
+
+                let methodsPassed = 0;
+                for (const method of methods) {
+                    if (typeof window.histofyStorage[method] === 'function') {
+                        log('pass', `Method ${method}(): Available`, 'storage-results');
+                        methodsPassed++;
+                    } else {
+                        log('fail', `Method ${method}(): NOT Available`, 'storage-results');
+                    }
+                }
+
+                // Test basic operations
+                log('info', 'Testing basic storage operations...', 'storage-results');
+                
+                const testData = await window.histofyStorage.getData();
+                log('pass', `getData() works: Retrieved data`, 'storage-results');
+
+                const pendingChanges = await window.histofyStorage.getPendingChanges();
+                log('pass', `getPendingChanges() works: ${pendingChanges.length} changes`, 'storage-results');
+
+                const userSettings = await window.histofyStorage.getUserSettings();
+                log('pass', `getUserSettings() works: Settings retrieved`, 'storage-results');
+
+                testResults.storage = methodsPassed === methods.length;
+                log('info', `Storage test completed: ${methodsPassed}/${methods.length} methods available`, 'storage-results');
+
+            } catch (error) {
+                log('fail', `Storage test failed: ${error.message}`, 'storage-results');
+                testResults.storage = false;
+            }
+        }
+
+        async function createMockData() {
+            updateProgress(3);
+            clearResults('mock-data-results');
+            log('info', 'Creating mock data for testing...', 'mock-data-results');
+            
+            try {
+                // Clear any existing changes first
+                await window.histofyStorage.clearPendingChanges();
+                log('pass', 'Cleared existing pending changes', 'mock-data-results');
+
+                // Create comprehensive mock data
+                const mockChanges = [
+                    {
+                        id: 'mock-change-1',
+                        type: 'date_selection',
+                        dates: ['2024-01-01', '2024-01-02', '2024-01-03'],
+                        contributions: {
+                            '2024-01-01': { level: 1, name: 'Low' },
+                            '2024-01-02': { level: 2, name: 'Medium' },
+                            '2024-01-03': { level: 4, name: 'High' }
+                        },
+                        username: 'testuser',
+                        year: 2024,
+                        timestamp: Date.now()
+                    },
+                    {
+                        id: 'mock-change-2',
+                        type: 'date_selection',
+                        dates: ['2024-02-14', '2024-02-15'],
+                        contributions: {
+                            '2024-02-14': { level: 3, name: 'Medium-High' },
+                            '2024-02-15': { level: 2, name: 'Medium' }
+                        },
+                        username: 'testuser',
+                        year: 2024,
+                        timestamp: Date.now() + 1000
+                    }
+                ];
+
+                // Store mock changes
+                for (const change of mockChanges) {
+                    await window.histofyStorage.storePendingChange(change);
+                    log('pass', `Stored mock change: ${change.dates.length} dates`, 'mock-data-results');
+                }
+
+                // Verify storage
+                const storedChanges = await window.histofyStorage.getPendingChanges();
+                log('pass', `Verified storage: ${storedChanges.length} changes stored`, 'mock-data-results');
+
+                // Update deploy button if available
+                if (window.histofyDeployButton) {
+                    await window.histofyDeployButton.updatePendingCount();
+                    log('pass', 'Updated deploy button pending count', 'mock-data-results');
+                }
+
+                testResults.mockData = storedChanges.length > 0;
+                log('info', `Mock data creation completed: ${storedChanges.length} changes available`, 'mock-data-results');
+
+            } catch (error) {
+                log('fail', `Mock data creation failed: ${error.message}`, 'mock-data-results');
+                testResults.mockData = false;
+            }
+        }
+
+        async function testDeployButton() {
+            updateProgress(4);
+            clearResults('deploy-button-results');
+            log('info', 'Testing deploy button functionality...', 'deploy-button-results');
+            
+            try {
+                if (!window.histofyDeployButton) {
+                    log('fail', 'Deploy button instance not available', 'deploy-button-results');
+                    testResults.deployButton = false;
+                    return;
+                }
+
+                const deployButton = window.histofyDeployButton;
+
+                // Test properties
+                const properties = [
+                    'isDeploying',
+                    'pendingChanges',
+                    'githubAPI',
+                    'githubDeployer',
+                    'userRepositories'
+                ];
+
+                for (const prop of properties) {
+                    if (prop in deployButton) {
+                        log('pass', `Property ${prop}: Available`, 'deploy-button-results');
+                    } else {
+                        log('fail', `Property ${prop}: NOT Available`, 'deploy-button-results');
+                    }
+                }
+
+                // Test methods
+                const methods = [
+                    'updatePendingCount',
+                    'startDeployment',
+                    'clearAllChanges',
+                    'showNotification',
+                    'updateAuthenticationUI'
+                ];
+
+                let methodsPassed = 0;
+                for (const method of methods) {
+                    if (typeof deployButton[method] === 'function') {
+                        log('pass', `Method ${method}(): Available`, 'deploy-button-results');
+                        methodsPassed++;
+                    } else {
+                        log('fail', `Method ${method}(): NOT Available`, 'deploy-button-results');
+                    }
+                }
+
+                // Test pending count update
+                await deployButton.updatePendingCount();
+                log('pass', `Pending changes count: ${deployButton.pendingChanges.length}`, 'deploy-button-results');
+
+                // Check if button exists in DOM
+                const buttonElement = document.querySelector('.histofy-deploy-button');
+                if (buttonElement) {
+                    log('pass', 'Deploy button element found in DOM', 'deploy-button-results');
+                } else {
+                    log('warning', 'Deploy button element not found in DOM (expected in extension)', 'deploy-button-results');
+                }
+
+                testResults.deployButton = methodsPassed === methods.length;
+                log('info', `Deploy button test completed: ${methodsPassed}/${methods.length} methods available`, 'deploy-button-results');
+
+            } catch (error) {
+                log('fail', `Deploy button test failed: ${error.message}`, 'deploy-button-results');
+                testResults.deployButton = false;
+            }
+        }
+
+        async function testAuthFlow() {
+            updateProgress(5);
+            clearResults('auth-results');
+            log('info', 'Testing authentication flow...', 'auth-results');
+            
+            try {
+                // Test GitHubAPI initialization
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                log('pass', 'GitHubAPI initialized', 'auth-results');
+
+                // Test authentication status
+                const isAuth = githubAPI.isAuthenticated();
+                log('info', `Authentication status: ${isAuth}`, 'auth-results');
+
+                // Test token validation without real token
+                try {
+                    await githubAPI.validateToken();
+                    log('warning', 'Token validation succeeded without token (unexpected)', 'auth-results');
+                } catch (error) {
+                    if (error.message.includes('No GitHub token')) {
+                        log('pass', 'Token validation correctly requires token', 'auth-results');
+                    } else {
+                        log('info', `Token validation error: ${error.message}`, 'auth-results');
+                    }
+                }
+
+                // Test API request without authentication
+                try {
+                    await githubAPI.makeRequest('/user');
+                    log('warning', 'API request succeeded without authentication (unexpected)', 'auth-results');
+                } catch (error) {
+                    if (error.message.includes('No GitHub token')) {
+                        log('pass', 'API requests correctly require authentication', 'auth-results');
+                    } else {
+                        log('info', `API request error: ${error.message}`, 'auth-results');
+                    }
+                }
+
+                // Test credential management
+                const cleared = await githubAPI.clearCredentials();
+                log('pass', `Credential clearing: ${cleared}`, 'auth-results');
+
+                testResults.auth = true;
+                log('info', 'Authentication flow test completed', 'auth-results');
+
+            } catch (error) {
+                log('fail', `Authentication test failed: ${error.message}`, 'auth-results');
+                testResults.auth = false;
+            }
+        }
+
+        async function testDeploymentLogic() {
+            updateProgress(6);
+            clearResults('deployment-results');
+            log('info', 'Testing deployment logic...', 'deployment-results');
+            
+            try {
+                // Initialize deployment components
+                const githubAPI = new GitHubAPI();
+                await githubAPI.init();
+                const deployer = new GitHubDeployer(githubAPI);
+                log('pass', 'Deployment components initialized', 'deployment-results');
+
+                // Test essential deployer methods
+                const methods = [
+                    'log',
+                    'updateStatus',
+                    'getDeploymentStatus',
+                    'determineTargetRepository',
+                    'groupChangesByRepository',
+                    'deployDateSelections'
+                ];
+
+                let methodsPassed = 0;
+                for (const method of methods) {
+                    if (typeof deployer[method] === 'function') {
+                        log('pass', `Deployer method ${method}(): Available`, 'deployment-results');
+                        methodsPassed++;
+                    } else {
+                        log('fail', `Deployer method ${method}(): NOT Available`, 'deployment-results');
+                    }
+                }
+
+                // Test deployment status
+                const status = deployer.getDeploymentStatus();
+                log('pass', `Deployment status: isDeploying=${status.isDeploying}`, 'deployment-results');
+
+                // Test target repository determination
+                const targetRepo = deployer.determineTargetRepository({
+                    targetRepository: 'testuser/test-repo'
+                });
+                log('pass', `Target repository: ${targetRepo.owner}/${targetRepo.repo}`, 'deployment-results');
+
+                // Test change grouping
+                const mockChanges = [{
+                    id: 'test1',
+                    type: 'date_selection',
+                    dates: ['2024-01-01'],
+                    contributions: { '2024-01-01': { level: 1, name: 'Low' } }
+                }];
+
+                const grouped = deployer.groupChangesByRepository(mockChanges, targetRepo);
+                log('pass', `Change grouping: ${Object.keys(grouped).length} repositories`, 'deployment-results');
+
+                // Test deployment attempt (should fail without auth)
+                try {
+                    await deployer.deployDateSelections(mockChanges, { targetRepository: 'test/repo' });
+                    log('warning', 'Deployment succeeded without auth (unexpected)', 'deployment-results');
+                } catch (error) {
+                    if (error.message.includes('token') || error.message.includes('auth')) {
+                        log('pass', 'Deployment correctly requires authentication', 'deployment-results');
+                    } else {
+                        log('info', `Deployment failed with: ${error.message}`, 'deployment-results');
+                    }
+                }
+
+                testResults.deployment = methodsPassed === methods.length;
+                log('info', `Deployment logic test completed: ${methodsPassed}/${methods.length} methods available`, 'deployment-results');
+
+            } catch (error) {
+                log('fail', `Deployment logic test failed: ${error.message}`, 'deployment-results');
+                testResults.deployment = false;
+            }
+        }
+
+        async function testErrorHandling() {
+            updateProgress(7);
+            clearResults('error-results');
+            log('info', 'Testing error handling...', 'error-results');
+            
+            try {
+                // Test deploy button error handling
+                if (window.histofyDeployButton) {
+                    // Test deployment without authentication
+                    log('info', 'Testing deployment without authentication...', 'error-results');
+                    try {
+                        await window.histofyDeployButton.startDeployment();
+                        log('warning', 'Deployment proceeded without authentication', 'error-results');
+                    } catch (error) {
+                        log('pass', `Deployment correctly failed: ${error.message}`, 'error-results');
+                    }
+                }
+
+                // Test storage error handling
+                log('info', 'Testing storage error handling...', 'error-results');
+                try {
+                    await window.histofyStorage.removePendingChange('nonexistent-id');
+                    log('pass', 'Storage handled nonexistent ID gracefully', 'error-results');
+                } catch (error) {
+                    log('info', `Storage error handling: ${error.message}`, 'error-results');
+                }
+
+                // Test API error handling
+                log('info', 'Testing API error handling...', 'error-results');
+                const githubAPI = new GitHubAPI();
+                try {
+                    await githubAPI.makeRequest('/nonexistent-endpoint');
+                    log('warning', 'API call succeeded unexpectedly', 'error-results');
+                } catch (error) {
+                    log('pass', `API correctly handled error: ${error.message}`, 'error-results');
+                }
+
+                testResults.errors = true;
+                log('info', 'Error handling test completed', 'error-results');
+
+            } catch (error) {
+                log('fail', `Error handling test failed: ${error.message}`, 'error-results');
+                testResults.errors = false;
+            }
+        }
+
+        async function simulateFullFlow() {
+            updateProgress(8);
+            clearResults('full-flow-results');
+            log('info', 'Starting full deployment flow simulation...', 'full-flow-results');
+            
+            try {
+                // Step 1: Ensure we have mock data
+                const pendingChanges = await window.histofyStorage.getPendingChanges();
+                if (pendingChanges.length === 0) {
+                    log('info', 'No pending changes, creating mock data...', 'full-flow-results');
+                    await createMockData();
+                }
+
+                const finalChanges = await window.histofyStorage.getPendingChanges();
+                log('pass', `Step 1: Found ${finalChanges.length} pending changes`, 'full-flow-results');
+
+                // Step 2: Initialize deploy button and update count
+                if (window.histofyDeployButton) {
+                    await window.histofyDeployButton.updatePendingCount();
+                    log('pass', `Step 2: Deploy button sees ${window.histofyDeployButton.pendingChanges.length} changes`, 'full-flow-results');
+                }
+
+                // Step 3: Simulate authentication check
+                log('info', 'Step 3: Checking authentication...', 'full-flow-results');
+                if (window.histofyDeployButton.githubAPI && window.histofyDeployButton.githubAPI.isAuthenticated()) {
+                    log('pass', 'User is authenticated', 'full-flow-results');
+                } else {
+                    log('info', 'User is not authenticated (expected in test)', 'full-flow-results');
+                }
+
+                // Step 4: Simulate deployment attempt
+                log('info', 'Step 4: Simulating deployment attempt...', 'full-flow-results');
+                try {
+                    if (window.histofyDeployButton) {
+                        // This should fail with authentication error
+                        await window.histofyDeployButton.startDeployment();
+                        log('warning', 'Deployment proceeded without authentication (unexpected)', 'full-flow-results');
+                    }
+                } catch (error) {
+                    log('pass', `Deployment correctly failed: ${error.message}`, 'full-flow-results');
+                }
+
+                // Step 5: Test repository options
+                log('info', 'Step 5: Testing repository options...', 'full-flow-results');
+                if (window.histofyDeployButton && window.histofyDeployButton.githubDeployer) {
+                    const deployer = window.histofyDeployButton.githubDeployer;
+                    
+                    // Test different repository options
+                    const options = [
+                        { name: 'Recommended', targetRepository: 'testuser/histofy-contributions' },
+                        { name: 'Custom', targetRepository: 'testuser/custom-repo' },
+                        { name: 'Default', targetRepository: null }
+                    ];
+
+                    for (const option of options) {
+                        try {
+                            const targetRepo = deployer.determineTargetRepository(option);
+                            log('pass', `${option.name} repo option: ${targetRepo.owner}/${targetRepo.repo}`, 'full-flow-results');
+                        } catch (error) {
+                            log('info', `${option.name} repo option error: ${error.message}`, 'full-flow-results');
+                        }
+                    }
+                }
+
+                // Step 6: Test change management
+                log('info', 'Step 6: Testing change management...', 'full-flow-results');
+                const originalCount = (await window.histofyStorage.getPendingChanges()).length;
+                
+                // Test removing a change
+                if (finalChanges.length > 0) {
+                    const changeToRemove = finalChanges[0];
+                    const removed = await window.histofyStorage.removePendingChange(changeToRemove.id);
+                    log('pass', `Removed change: ${removed}`, 'full-flow-results');
+                    
+                    // Add it back
+                    await window.histofyStorage.storePendingChange(changeToRemove);
+                    log('pass', 'Re-added change', 'full-flow-results');
+                }
+
+                const finalCount = (await window.histofyStorage.getPendingChanges()).length;
+                log('pass', `Change management test: ${originalCount} -> ${finalCount}`, 'full-flow-results');
+
+                testResults.fullFlow = true;
+                log('info', 'Full flow simulation completed successfully!', 'full-flow-results');
+
+                // Generate final summary
+                generateTestSummary();
+
+            } catch (error) {
+                log('fail', `Full flow simulation failed: ${error.message}`, 'full-flow-results');
+                testResults.fullFlow = false;
+                generateTestSummary();
+            }
+        }
+
+        function generateTestSummary() {
+            const summary = document.getElementById('test-summary');
+            const passed = Object.values(testResults).filter(Boolean).length;
+            const total = Object.keys(testResults).length;
+            
+            summary.innerHTML = `
+                <div class="step-title">🎯 Test Results Summary</div>
+                <div class="progress">
+                    <div class="progress-bar" style="width: ${(passed/total)*100}%"></div>
+                </div>
+                <div><strong>Overall Score:</strong> ${passed}/${total} test categories passed</div>
+                <div style="margin-top: 10px;">
+                    <div class="${testResults.environment ? 'pass' : 'fail'}">Environment: ${testResults.environment ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.storage ? 'pass' : 'fail'}">Storage: ${testResults.storage ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.mockData ? 'pass' : 'fail'}">Mock Data: ${testResults.mockData ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.deployButton ? 'pass' : 'fail'}">Deploy Button: ${testResults.deployButton ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.auth ? 'pass' : 'fail'}">Authentication: ${testResults.auth ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.deployment ? 'pass' : 'fail'}">Deployment Logic: ${testResults.deployment ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.errors ? 'pass' : 'fail'}">Error Handling: ${testResults.errors ? 'PASS' : 'FAIL'}</div>
+                    <div class="${testResults.fullFlow ? 'pass' : 'fail'}">Full Flow: ${testResults.fullFlow ? 'PASS' : 'FAIL'}</div>
+                </div>
+                <div style="margin-top: 15px; font-weight: bold;">
+                    ${passed === total ? '✅ All tests passed! Deployment should work with authentication.' : 
+                      passed >= 6 ? '⚠️ Most tests passed. Minor issues may exist.' : 
+                      '❌ Significant issues found. Deployment may not work properly.'}
+                </div>
+            `;
+        }
+
+        // Auto-run environment test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testEnvironment();
+            }, 1000);
+        });
+
+    </script>
+</body>
+</html>

@@ -176,6 +176,65 @@ class LocalStorageManager {
     }
   }
 
+  // Get all pending changes
+  async getPendingChanges() {
+    try {
+      const data = await this.getData();
+      return data?.pendingChanges || [];
+    } catch (error) {
+      console.error('Storage: Failed to get pending changes:', error);
+      return [];
+    }
+  }
+
+  // Clear all pending changes
+  async clearPendingChanges() {
+    try {
+      const data = await this.getData();
+      if (!data) {
+        await this.ensureDataStructure();
+        return true;
+      }
+
+      data.pendingChanges = [];
+      await this.saveData(data);
+      console.log('Storage: Cleared all pending changes');
+      return true;
+    } catch (error) {
+      console.error('Storage: Failed to clear pending changes:', error);
+      return false;
+    }
+  }
+
+  // Remove a specific pending change by ID
+  async removePendingChange(changeId) {
+    try {
+      const data = await this.getData();
+      if (!data?.pendingChanges) {
+        return false;
+      }
+
+      const originalLength = data.pendingChanges.length;
+      data.pendingChanges = data.pendingChanges.filter(change => change.id !== changeId);
+      
+      if (data.pendingChanges.length < originalLength) {
+        await this.saveData(data);
+        console.log(`Storage: Removed pending change ${changeId}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Storage: Failed to remove pending change:', error);
+      return false;
+    }
+  }
+
+  // Store a single pending change (alias for addPendingChange)
+  async storePendingChange(change) {
+    return await this.addPendingChange(change);
+  }
+
   // Check if a change is duplicate of existing pending changes
   isDuplicateChange(newChange, existingChanges) {
     return existingChanges.some(existing => {

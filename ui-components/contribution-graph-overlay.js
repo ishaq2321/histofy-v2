@@ -116,9 +116,7 @@ class ContributionGraphOverlay {
       this.setupContributionTiles();
       console.log('Histofy: Tile handlers set up');
       
-      // Step 7: Create instruction panel
-      this.createInstructionPanel();
-      console.log('Histofy: Instruction panel created');
+      // Step 7: Skip instruction panel creation for cleaner UI
       
       // Step 8: Load existing contributions
       setTimeout(() => {
@@ -376,7 +374,7 @@ class ContributionGraphOverlay {
     // Prevent accidental deactivation from page events
     this.protectionHandler = (e) => {
       // Don't let other click events deactivate the overlay
-      if (this.isActive && e.target && !e.target.closest('.histofy-instruction-panel')) {
+      if (this.isActive && e.target) {
         e.stopPropagation();
       }
     };
@@ -410,8 +408,7 @@ class ContributionGraphOverlay {
     // Remove all event handlers
     this.removeContributionHandlers();
     
-    // Remove instruction panel
-    this.removeInstructionPanel();
+    // Skip instruction panel removal as it's no longer created
     
     // Reset any modified tiles to original state (but keep colors if user selected them)
     document.querySelectorAll('[data-histofy-active]').forEach(tile => {
@@ -459,14 +456,12 @@ class ContributionGraphOverlay {
     // Update tile appearance immediately
     this.updateTileAppearance(tile, date, nextLevel);
     
-    // Update instruction panel
-    this.updateInstructionPanel();
+    // Skip instruction panel update as it's no longer used
     
-    // Save to storage
+    // Save to storage (but don't add to pending changes automatically)
     this.saveContributions();
     
-    // Add ALL current contributions to pending changes (not just this one)
-    this.addToPendingChanges(date, nextLevel);
+    // Note: Pending changes are now only added when "Store Changes" button is clicked
 
     // Add visual feedback
     tile.style.transform = 'scale(1.2)';
@@ -511,125 +506,6 @@ class ContributionGraphOverlay {
     }
   }
 
-  // Instruction panel
-  createInstructionPanel() {
-    // Remove existing panel first
-    this.removeInstructionPanel();
-
-    const panel = document.createElement('div');
-    panel.className = 'histofy-instruction-panel';
-    panel.setAttribute('data-histofy-panel', 'true');
-    panel.innerHTML = `
-      <div class="histofy-panel-header">
-        <h3>🎯 Histofy Active</h3>
-        <button class="histofy-panel-close" data-histofy-close="panel" type="button">✕</button>
-      </div>
-      <div class="histofy-panel-content">
-        <div class="histofy-instructions">
-          <p><strong>Click tiles to cycle through contribution levels:</strong></p>
-          <div class="histofy-level-examples">
-            <div class="histofy-level-item">
-              <span class="histofy-level-color" style="background: #ebedf0; border: 1px solid #d0d7de;"></span>
-              <span>None (0 commits)</span>
-            </div>
-            <div class="histofy-level-item">
-              <span class="histofy-level-color" style="background: #216e39"></span>
-              <span>Low (1-3 commits)</span>
-            </div>
-            <div class="histofy-level-item">
-              <span class="histofy-level-color" style="background: #30a14e"></span>
-              <span>Medium (10-14 commits)</span>
-            </div>
-            <div class="histofy-level-item">
-              <span class="histofy-level-color" style="background: #40c463"></span>
-              <span>High (20-24 commits)</span>
-            </div>
-            <div class="histofy-level-item">
-              <span class="histofy-level-color" style="background: #9be9a8"></span>
-              <span>Very High (25+ commits)</span>
-            </div>
-          </div>
-          <div class="histofy-testing-note">
-            <p><strong>📊 Based on Real Testing:</strong></p>
-            <p>Ranges validated: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅</p>
-          </div>
-        </div>
-        <div class="histofy-stats">
-          <div class="histofy-stat">
-            <span class="histofy-stat-label">Selected Tiles:</span>
-            <span class="histofy-stat-value" id="histofy-selected-count">0</span>
-          </div>
-        </div>
-        <div class="histofy-panel-actions">
-          <button class="histofy-btn histofy-btn-secondary" data-histofy-action="clear" type="button">🗑️ Clear All</button>
-          <button class="histofy-btn histofy-btn-warning" data-histofy-action="deactivate" type="button">❌ Deactivate</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(panel);
-
-    // Setup panel event listeners with proper delegation
-    this.setupPanelEventListeners();
-  }
-
-  setupPanelEventListeners() {
-    // Use event delegation on the panel
-    const panel = document.querySelector('[data-histofy_panel="true"]');
-    if (!panel) return;
-
-    const panelClickHandler = (e) => {
-      e.stopPropagation();
-      
-      const target = e.target;
-      
-      // Handle close button
-      if (target.hasAttribute('data-histofy-close') || target.closest('[data-histofy-close]')) {
-        console.log('Histofy: Close button clicked');
-        this.deactivate();
-        return;
-      }
-      
-      // Handle action buttons
-      const actionButton = target.closest('[data-histofy-action]');
-      if (actionButton) {
-        const action = actionButton.getAttribute('data-histofy-action');
-        console.log('Histofy: Action button clicked:', action);
-        
-        if (action === 'clear') {
-          this.clearAllSelections();
-        } else if (action === 'deactivate') {
-          this.deactivate();
-        }
-        return;
-      }
-    };
-
-    panel.addEventListener('click', panelClickHandler);
-    
-    // Store the handler for cleanup
-    panel._histofyClickHandler = panelClickHandler;
-  }
-
-  updateInstructionPanel() {
-    const selectedCount = Object.keys(this.contributions).length;
-    const countElement = document.getElementById('histofy-selected-count');
-    if (countElement) {
-      countElement.textContent = selectedCount;
-    }
-  }
-
-  removeInstructionPanel() {
-    const panel = document.querySelector('[data-histofy-panel="true"]');
-    if (panel) {
-      // Remove event listener if it exists
-      if (panel._histofyClickHandler) {
-        panel.removeEventListener('click', panel._histofyClickHandler);
-      }
-      panel.remove();
-    }
-  }
-
   // Data management
   clearAllSelections() {
     console.log('Histofy: Clearing all selections');
@@ -652,7 +528,7 @@ class ContributionGraphOverlay {
 
     // Clear contributions
     this.contributions = {};
-    this.updateInstructionPanel();
+    // Skip instruction panel update as it's no longer used
     this.saveContributions();
 
     // Clear pending changes for this user/year and update deployment button
@@ -793,6 +669,68 @@ class ContributionGraphOverlay {
 
     } catch (error) {
       console.error('Histofy: Failed to add pending changes:', error);
+    }
+  }
+
+  // Force store pending changes when "Store Changes" button is clicked
+  async forceStorePendingChanges() {
+    console.log('Histofy: Force storing pending changes');
+    
+    if (!window.histofyStorage) {
+      console.error('Histofy: Storage not available');
+      return false;
+    }
+
+    try {
+      // Get all currently selected dates and their levels
+      const selectedDates = Object.keys(this.contributions);
+      
+      if (selectedDates.length === 0) {
+        console.log('Histofy: No contributions to store');
+        return false;
+      }
+
+      // Create a comprehensive change entry that includes ALL selected dates
+      const change = {
+        type: 'date_selection',
+        dates: selectedDates,
+        contributions: { ...this.contributions },
+        username: this.username,
+        year: this.currentYear,
+        timestamp: new Date().toISOString(),
+        id: `${this.username}_${this.currentYear}_manual_${Date.now()}`
+      };
+
+      // Get existing pending changes
+      const data = await window.histofyStorage.getData();
+      if (!data.pendingChanges) {
+        data.pendingChanges = [];
+      }
+
+      // Remove any existing change for this same user/year combination
+      data.pendingChanges = data.pendingChanges.filter(existingChange => 
+        !(existingChange.type === 'date_selection' && 
+          existingChange.username === this.username && 
+          existingChange.year === this.currentYear)
+      );
+
+      // Add the new comprehensive change
+      data.pendingChanges.push(change);
+      console.log(`Histofy: Manually stored pending changes for ${selectedDates.length} dates:`, selectedDates);
+
+      await window.histofyStorage.saveData(data);
+      
+      // Update deploy button count immediately
+      if (window.histofyDeployButton) {
+        setTimeout(() => {
+          window.histofyDeployButton.updatePendingCount();
+        }, 100);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Histofy: Failed to force store pending changes:', error);
+      return false;
     }
   }
 
