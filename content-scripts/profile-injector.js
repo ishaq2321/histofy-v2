@@ -295,7 +295,7 @@ class ProfileInjector {
 
         // Step 5: Attempt activation
         console.log('Histofy: Starting activation process...');
-        const success = window.histofyOverlay.activate();
+        const success = await window.histofyOverlay.activate();
         
         if (success) {
           this.showNotification('Histofy activated! Click on contribution tiles to modify them.', 'success');
@@ -353,7 +353,7 @@ class ProfileInjector {
     }
   }
 
-  handleStoreChanges() {
+  async handleStoreChanges() {
     console.log('Histofy: Store Changes button clicked');
     
     if (!window.histofyOverlay || !window.histofyOverlay.isActive) {
@@ -365,15 +365,62 @@ class ProfileInjector {
     const contributions = window.histofyOverlay.getContributions();
     const selectedCount = Object.keys(contributions).length;
     
+    console.log('Histofy: Store Changes - Current contributions:', contributions);
+    console.log('Histofy: Store Changes - Selected count:', selectedCount);
+    
     if (selectedCount === 0) {
-      this.showNotification('No changes to store. Please select some dates first.', 'warning');
+      console.log('Histofy: No contributions found, attempting to reload...');
+      
+      // Try to reload contributions first
+      if (window.histofyOverlay.loadContributions) {
+        await window.histofyOverlay.loadContributions();
+        const reloadedContributions = window.histofyOverlay.getContributions();
+        const reloadedCount = Object.keys(reloadedContributions).length;
+        console.log('Histofy: After reload - contributions count:', reloadedCount);
+        
+        if (reloadedCount > 0) {
+          // Now we have contributions, continue with storing
+          if (window.histofyOverlay.forceStorePendingChanges) {
+            const success = await window.histofyOverlay.forceStorePendingChanges();
+            if (success) {
+              this.showNotification(`✅ Stored ${reloadedCount} changes to pending deployment`, 'success');
+            } else {
+              this.showNotification('Failed to store changes. Please try again.', 'error');
+            }
+          }
+          return;
+        }
+      }
+      
+      // Still no contributions - check for visual modifications
+      const modifiedTiles = document.querySelectorAll('[data-histofy-title], [title*="Modified by Histofy"]');
+      if (modifiedTiles.length > 0) {
+        console.log(`Histofy: Found ${modifiedTiles.length} visually modified tiles, forcing rebuild...`);
+        this.showNotification('Detected modified tiles, rebuilding data...', 'info');
+        
+        if (window.histofyOverlay.forceStorePendingChanges) {
+          const success = await window.histofyOverlay.forceStorePendingChanges();
+          if (success) {
+            this.showNotification(`✅ Rebuilt and stored changes to pending deployment`, 'success');
+          } else {
+            this.showNotification('Failed to rebuild changes. Please try clicking tiles again.', 'error');
+          }
+        }
+        return;
+      }
+      
+      this.showNotification('No changes to store. Please select some dates first by clicking on contribution tiles.', 'warning');
       return;
     }
 
     // Force add to pending changes
     if (window.histofyOverlay.forceStorePendingChanges) {
-      window.histofyOverlay.forceStorePendingChanges();
-      this.showNotification(`✅ Stored ${selectedCount} changes to pending deployment`, 'success');
+      const success = await window.histofyOverlay.forceStorePendingChanges();
+      if (success) {
+        this.showNotification(`✅ Stored ${selectedCount} changes to pending deployment`, 'success');
+      } else {
+        this.showNotification('Failed to store changes. Please try again.', 'error');
+      }
     } else {
       this.showNotification('Unable to store changes. Please try again.', 'error');
     }

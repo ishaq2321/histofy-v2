@@ -984,6 +984,10 @@ class DeployButton {
 
     try {
       this.isDeploying = true;
+      
+      // Update deploy button UI to show "Deploying..."
+      this.updateDeployButtonUI(true);
+      
       this.showDeploymentStatus();
       
       // Parse repository info
@@ -1013,6 +1017,10 @@ class DeployButton {
       this.log('error', `Deployment failed: ${error.message}`);
     } finally {
       this.isDeploying = false;
+      
+      // Restore deploy button UI
+      this.updateDeployButtonUI(false);
+      
       setTimeout(() => this.hideDeploymentStatus(), 3000);
     }
   }
@@ -1023,16 +1031,17 @@ class DeployButton {
     this.log('info', `Deployment completed: ${successful.length} successful, ${failed.length} failed`);
     
     if (failed.length === 0) {
-      this.showNotification(`✅ Deployment successful! Created ${successful.length} commits in ${targetRepository}.`, 'success');
-      
-      // Show repository link
+      // Combine success message and repository link into one notification
+      let repoUrl = null;
       repositories.forEach((repoResult, repoKey) => {
         if (repoResult.repository?.html_url) {
+          repoUrl = repoResult.repository.html_url;
           this.log('success', `Repository: ${repoResult.repository.html_url}`);
-          // Optionally open the repository in a new tab
-          this.showRepositoryLink(repoResult.repository.html_url);
         }
       });
+      
+      // Show single combined notification with working "View Repo" button
+      this.showCombinedSuccessNotification(successful.length, targetRepository, repoUrl);
       
     } else if (successful.length > 0) {
       this.showNotification(`⚠️ Partial success: ${successful.length} succeeded, ${failed.length} failed in ${targetRepository}.`, 'warning');
@@ -1066,6 +1075,46 @@ class DeployButton {
     setTimeout(() => {
       linkNotification.remove();
     }, 8000);
+  }
+
+  showCombinedSuccessNotification(commitCount, targetRepository, repoUrl) {
+    // Create a single comprehensive success notification
+    const successNotification = document.createElement('div');
+    successNotification.className = 'histofy-notification histofy-notification-success histofy-deployment-success';
+    
+    const buttonHtml = repoUrl 
+      ? `<button onclick="window.open('${repoUrl}', '_blank')" class="histofy-repo-link-btn">🔗 View Repository</button>`
+      : '';
+    
+    successNotification.innerHTML = `
+      <div class="histofy-success-content">
+        <div class="histofy-success-message">
+          ✅ Deployment successful! Created ${commitCount} commits in ${targetRepository}.
+        </div>
+        ${buttonHtml}
+      </div>
+    `;
+    
+    document.body.appendChild(successNotification);
+    
+    setTimeout(() => {
+      successNotification.remove();
+    }, 10000); // Longer timeout for combined notification
+  }
+
+  updateDeployButtonUI(isDeploying) {
+    const startDeployBtn = document.querySelector('#histofy-start-deploy');
+    if (startDeployBtn) {
+      if (isDeploying) {
+        startDeployBtn.disabled = true;
+        startDeployBtn.innerHTML = '⏳ Deploying...';
+        startDeployBtn.classList.add('histofy-deploying');
+      } else {
+        startDeployBtn.disabled = false;
+        startDeployBtn.innerHTML = '🚀 Start Deployment';
+        startDeployBtn.classList.remove('histofy-deploying');
+      }
+    }
   }
 
   async clearProcessedChanges(successfulOperations) {

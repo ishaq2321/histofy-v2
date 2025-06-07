@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Store Changes Fix - Histofy</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f6f8fa;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #d0d7de;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #24292f;
+        }
+        .test-button {
+            background: #2da44e;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2c974b;
+        }
+        .test-button.secondary {
+            background: #656d76;
+        }
+        .test-button.secondary:hover {
+            background: #4c545c;
+        }
+        .log-container {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 4px;
+        }
+        .log-info { color: #0969da; }
+        .log-success { color: #1a7f37; }
+        .log-warning { color: #9a6700; }
+        .log-error { color: #cf222e; }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-pass { background-color: #1a7f37; }
+        .status-fail { background-color: #cf222e; }
+        .status-pending { background-color: #9a6700; }
+        .mock-contribution-tile {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin: 2px;
+            cursor: pointer;
+            border: 1px solid #d0d7de;
+            background-color: #ebedf0;
+        }
+        .mock-contribution-tile[data-level="1"] { background-color: #216e39; }
+        .mock-contribution-tile[data-level="2"] { background-color: #30a14e; }
+        .mock-contribution-tile[data-level="3"] { background-color: #40c463; }
+        .mock-contribution-tile[data-level="4"] { background-color: #9be9a8; }
+        .mock-contribution-tile:hover {
+            transform: scale(1.1);
+        }
+        .mock-contribution-grid {
+            background: white;
+            padding: 15px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Store Changes Fix - Histofy</h1>
+    <p>This test validates the "Store Changes" button fix that addresses the "no pending changes" issue.</p>
+
+    <!-- Test 1: Basic Store Changes Functionality -->
+    <div class="test-container">
+        <div class="test-title">
+            <span class="status-indicator status-pending" id="test1-status"></span>
+            Test 1: Basic Store Changes Functionality
+        </div>
+        <p>Tests if the enhanced Store Changes functionality works correctly.</p>
+        
+        <div class="mock-contribution-grid">
+            <h4>Mock Contribution Graph (Click tiles to select)</h4>
+            <div id="mock-tiles"></div>
+            <p><small>Selected tiles: <span id="selected-count">0</span></small></p>
+        </div>
+        
+        <button class="test-button" onclick="runTest1()">Run Test 1</button>
+        <button class="test-button secondary" onclick="clearTest1()">Clear Selections</button>
+        <div class="log-container" id="test1-log"></div>
+    </div>
+
+    <!-- Test 2: Emergency Rebuild -->
+    <div class="test-container">
+        <div class="test-title">
+            <span class="status-indicator status-pending" id="test2-status"></span>
+            Test 2: Emergency Rebuild from Visual Modifications
+        </div>
+        <p>Tests if the system can detect and rebuild contributions from visual modifications.</p>
+        
+        <button class="test-button" onclick="runTest2()">Run Test 2</button>
+        <div class="log-container" id="test2-log"></div>
+    </div>
+
+    <!-- Test 3: Username Detection -->
+    <div class="test-container">
+        <div class="test-title">
+            <span class="status-indicator status-pending" id="test3-status"></span>
+            Test 3: Username Detection and Loading
+        </div>
+        <p>Tests if username extraction and contribution loading works correctly.</p>
+        
+        <button class="test-button" onclick="runTest3()">Run Test 3</button>
+        <div class="log-container" id="test3-log"></div>
+    </div>
+
+    <!-- Test 4: Complete Integration -->
+    <div class="test-container">
+        <div class="test-title">
+            <span class="status-indicator status-pending" id="test4-status"></span>
+            Test 4: Complete Store Changes Integration
+        </div>
+        <p>Full integration test of the Store Changes fix.</p>
+        
+        <button class="test-button" onclick="runTest4()">Run Test 4</button>
+        <div class="log-container" id="test4-log"></div>
+    </div>
+
+    <script>
+        // Mock storage for testing
+        const mockStorage = {
+            data: {
+                pendingChanges: [],
+                contributions: {}
+            },
+            async getData() {
+                return { ...this.data };
+            },
+            async saveData(data) {
+                this.data = { ...data };
+                return true;
+            }
+        };
+
+        // Mock overlay for testing
+        const mockOverlay = {
+            username: 'testuser',
+            currentYear: 2024,
+            isActive: true,
+            contributions: {},
+            contributionLevels: {
+                0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },
+                1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },
+                2: { level: 2, name: 'Medium', color: '#30a14e', commits: '10-14' },
+                3: { level: 3, name: 'High', color: '#40c463', commits: '20-24' },
+                4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '25+' }
+            },
+
+            getContributions() {
+                return { ...this.contributions };
+            },
+
+            async loadContributions() {
+                log('info', 'Loading contributions from storage...', 'test1-log');
+                const data = await mockStorage.getData();
+                if (data.contributions?.[this.username]?.[this.currentYear]) {
+                    this.contributions = { ...data.contributions[this.username][this.currentYear] };
+                    log('success', `Loaded ${Object.keys(this.contributions).length} contributions`, 'test1-log');
+                } else {
+                    log('info', 'No saved contributions found', 'test1-log');
+                }
+            },
+
+            async saveContributions() {
+                const data = await mockStorage.getData();
+                if (!data.contributions) data.contributions = {};
+                if (!data.contributions[this.username]) data.contributions[this.username] = {};
+                data.contributions[this.username][this.currentYear] = { ...this.contributions };
+                await mockStorage.saveData(data);
+                log('success', 'Contributions saved to storage', 'test1-log');
+            },
+
+            scanForVisualModifications() {
+                const modifications = [];
+                const modifiedTiles = document.querySelectorAll('[data-histofy-title]');
+                modifiedTiles.forEach(tile => {
+                    const date = tile.getAttribute('data-date');
+                    const level = parseInt(tile.getAttribute('data-level')) || 1;
+                    if (date && level > 0) {
+                        modifications.push({ date, level, commitsText: this.contributionLevels[level].commits });
+                    }
+                });
+                return modifications;
+            },
+
+            rebuildContributionsFromVisual(modifications) {
+                modifications.forEach(({ date, level }) => {
+                    if (level > 0) {
+                        this.contributions[date] = {
+                            ...this.contributionLevels[level],
+                            date: date
+                        };
+                    }
+                });
+                log('success', `Rebuilt contributions with ${Object.keys(this.contributions).length} entries`, 'test1-log');
+                this.saveContributions();
+            },
+
+            emergencyRebuildContributions() {
+                log('info', 'Emergency rebuild - scanning all tiles...', 'test1-log');
+                const tiles = document.querySelectorAll('.mock-contribution-tile[data-level]');
+                let rebuiltCount = 0;
+                
+                tiles.forEach(tile => {
+                    const date = tile.getAttribute('data-date');
+                    const level = parseInt(tile.getAttribute('data-level'));
+                    if (date && level > 0) {
+                        this.contributions[date] = {
+                            ...this.contributionLevels[level],
+                            date: date
+                        };
+                        rebuiltCount++;
+                    }
+                });
+                
+                log('success', `Emergency rebuild completed - rebuilt ${rebuiltCount} contributions`, 'test1-log');
+                if (rebuiltCount > 0) {
+                    this.saveContributions();
+                }
+            },
+
+            extractUserInfo() {
+                this.username = 'testuser';
+                this.currentYear = 2024;
+                log('info', `Extracted user info - Username: ${this.username}, Year: ${this.currentYear}`, 'test1-log');
+            },
+
+            async forceStorePendingChanges() {
+                log('info', 'Force storing pending changes - Starting diagnostic...', 'test1-log');
+                
+                // Enhanced diagnostic logging
+                log('info', `Current state - Username: ${this.username}, Year: ${this.currentYear}, Active: ${this.isActive}`, 'test1-log');
+                log('info', `Contributions Count: ${Object.keys(this.contributions).length}`, 'test1-log');
+
+                try {
+                    // Step 1: Ensure we have user info
+                    if (!this.username || this.username === 'unknown-user') {
+                        log('info', 'Re-extracting user info...', 'test1-log');
+                        this.extractUserInfo();
+                    }
+
+                    // Step 2: Try to reload contributions if empty
+                    if (Object.keys(this.contributions).length === 0) {
+                        log('info', 'No current contributions, attempting to reload from storage...', 'test1-log');
+                        await this.loadContributions();
+                        log('info', `After reload - Contributions Count: ${Object.keys(this.contributions).length}`, 'test1-log');
+                    }
+
+                    // Step 3: If still no contributions, check for visual modifications
+                    if (Object.keys(this.contributions).length === 0) {
+                        log('info', 'No stored contributions, scanning for visual modifications...', 'test1-log');
+                        const visualModifications = this.scanForVisualModifications();
+                        if (visualModifications.length > 0) {
+                            log('info', `Found ${visualModifications.length} visual modifications, rebuilding contributions...`, 'test1-log');
+                            this.rebuildContributionsFromVisual(visualModifications);
+                        }
+                    }
+
+                    // Step 4: Get all currently selected dates and their levels
+                    const selectedDates = Object.keys(this.contributions);
+                    
+                    if (selectedDates.length === 0) {
+                        log('warning', 'Still no contributions to store after all attempts', 'test1-log');
+                        const modifiedTiles = document.querySelectorAll('[data-histofy-title]');
+                        log('info', `Found ${modifiedTiles.length} tiles with Histofy modifications`, 'test1-log');
+                        if (modifiedTiles.length > 0) {
+                            log('info', 'Visual modifications exist but not in contributions object - attempting emergency rebuild...', 'test1-log');
+                            this.emergencyRebuildContributions();
+                            return await this.forceStorePendingChanges(); // Retry once
+                        }
+                        return false;
+                    }
+
+                    // Step 5: Create change entry
+                    const change = {
+                        type: 'date_selection',
+                        dates: selectedDates,
+                        contributions: { ...this.contributions },
+                        username: this.username,
+                        year: this.currentYear,
+                        timestamp: new Date().toISOString(),
+                        id: `${this.username}_${this.currentYear}_manual_${Date.now()}`
+                    };
+
+                    log('success', `Creating change entry for ${selectedDates.length} dates`, 'test1-log');
+
+                    // Step 6: Store to pending changes
+                    const data = await mockStorage.getData();
+                    if (!data.pendingChanges) data.pendingChanges = [];
+
+                    // Remove existing changes for this user/year
+                    const originalCount = data.pendingChanges.length;
+                    data.pendingChanges = data.pendingChanges.filter(existingChange => 
+                        !(existingChange.type === 'date_selection' && 
+                          existingChange.username === this.username && 
+                          existingChange.year === this.currentYear)
+                    );
+                    const removedCount = originalCount - data.pendingChanges.length;
+
+                    // Add new change
+                    data.pendingChanges.push(change);
+                    await mockStorage.saveData(data);
+
+                    log('success', `Stored pending changes for ${selectedDates.length} dates (removed ${removedCount} existing)`, 'test1-log');
+                    return true;
+
+                } catch (error) {
+                    log('error', `Failed to force store pending changes: ${error.message}`, 'test1-log');
+                    return false;
+                }
+            }
+        };
+
+        // Set up global mocks
+        window.histofyStorage = mockStorage;
+        window.histofyOverlay = mockOverlay;
+
+        // Utility functions
+        function log(type, message, containerId) {
+            const container = document.getElementById(containerId);
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function setTestStatus(testId, status) {
+            const statusEl = document.getElementById(`${testId}-status`);
+            statusEl.className = `status-indicator status-${status}`;
+        }
+
+        function clearLog(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        // Create mock contribution tiles
+        function createMockTiles() {
+            const container = document.getElementById('mock-tiles');
+            container.innerHTML = '';
+            
+            // Create 20 mock tiles representing different dates
+            for (let i = 0; i < 20; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'mock-contribution-tile';
+                tile.setAttribute('data-date', `2024-01-${String(i + 1).padStart(2, '0')}`);
+                tile.setAttribute('data-level', '0');
+                tile.title = `2024-01-${String(i + 1).padStart(2, '0')}: No contributions`;
+                
+                tile.addEventListener('click', () => {
+                    const currentLevel = parseInt(tile.getAttribute('data-level'));
+                    const nextLevel = (currentLevel + 1) % 5;
+                    const date = tile.getAttribute('data-date');
+                    
+                    tile.setAttribute('data-level', nextLevel);
+                    
+                    if (nextLevel === 0) {
+                        tile.title = `${date}: No contributions`;
+                        tile.removeAttribute('data-histofy-title');
+                        delete mockOverlay.contributions[date];
+                    } else {
+                        const levelConfig = mockOverlay.contributionLevels[nextLevel];
+                        tile.title = `${date}: ${levelConfig.name} (${levelConfig.commits} commits) - Modified by Histofy`;
+                        tile.setAttribute('data-histofy-title', tile.title);
+                        mockOverlay.contributions[date] = {
+                            ...levelConfig,
+                            date: date
+                        };
+                    }
+                    
+                    updateSelectedCount();
+                });
+                
+                container.appendChild(tile);
+            }
+            
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = Object.keys(mockOverlay.contributions).length;
+            document.getElementById('selected-count').textContent = count;
+        }
+
+        function clearTest1() {
+            mockOverlay.contributions = {};
+            document.querySelectorAll('.mock-contribution-tile').forEach(tile => {
+                tile.setAttribute('data-level', '0');
+                tile.removeAttribute('data-histofy-title');
+                const date = tile.getAttribute('data-date');
+                tile.title = `${date}: No contributions`;
+            });
+            updateSelectedCount();
+            clearLog('test1-log');
+            log('info', 'Cleared all selections', 'test1-log');
+        }
+
+        // Test functions
+        async function runTest1() {
+            clearLog('test1-log');
+            setTestStatus('test1', 'pending');
+            
+            log('info', '=== Test 1: Basic Store Changes Functionality ===', 'test1-log');
+            
+            try {
+                // Test with no contributions
+                log('info', 'Testing with no contributions...', 'test1-log');
+                mockOverlay.contributions = {};
+                const result1 = await mockOverlay.forceStorePendingChanges();
+                
+                if (!result1) {
+                    log('success', 'Correctly detected no contributions to store', 'test1-log');
+                } else {
+                    throw new Error('Should have failed with no contributions');
+                }
+                
+                // Add some mock contributions
+                log('info', 'Adding mock contributions...', 'test1-log');
+                mockOverlay.contributions = {
+                    '2024-01-01': { ...mockOverlay.contributionLevels[1], date: '2024-01-01' },
+                    '2024-01-02': { ...mockOverlay.contributionLevels[2], date: '2024-01-02' },
+                    '2024-01-03': { ...mockOverlay.contributionLevels[3], date: '2024-01-03' }
+                };
+                
+                // Test storing contributions
+                const result2 = await mockOverlay.forceStorePendingChanges();
+                
+                if (result2) {
+                    log('success', 'Successfully stored contributions', 'test1-log');
+                    
+                    // Verify storage
+                    const data = await mockStorage.getData();
+                    if (data.pendingChanges.length > 0) {
+                        log('success', `Verified: ${data.pendingChanges.length} pending changes in storage`, 'test1-log');
+                        setTestStatus('test1', 'pass');
+                    } else {
+                        throw new Error('No pending changes found in storage');
+                    }
+                } else {
+                    throw new Error('Failed to store contributions');
+                }
+                
+            } catch (error) {
+                log('error', `Test 1 failed: ${error.message}`, 'test1-log');
+                setTestStatus('test1', 'fail');
+            }
+        }
+
+        async function runTest2() {
+            clearLog('test2-log');
+            setTestStatus('test2', 'pending');
+            
+            log('info', '=== Test 2: Emergency Rebuild from Visual Modifications ===', 'test2-log');
+            
+            try {
+                // Clear contributions but leave visual modifications
+                mockOverlay.contributions = {};
+                
+                // Create mock visual modifications
+                const testTiles = document.querySelectorAll('.mock-contribution-tile');
+                testTiles[0].setAttribute('data-level', '2');
+                testTiles[0].setAttribute('data-histofy-title', '2024-01-01: Medium (10-14 commits) - Modified by Histofy');
+                testTiles[1].setAttribute('data-level', '3');
+                testTiles[1].setAttribute('data-histofy-title', '2024-01-02: High (20-24 commits) - Modified by Histofy');
+                
+                log('info', 'Created visual modifications without contributions object', 'test2-log');
+                
+                // Test emergency rebuild
+                const result = await mockOverlay.forceStorePendingChanges();
+                
+                if (result) {
+                    log('success', 'Successfully rebuilt and stored from visual modifications', 'test2-log');
+                    
+                    // Verify contributions were rebuilt
+                    const contributionsCount = Object.keys(mockOverlay.contributions).length;
+                    if (contributionsCount > 0) {
+                        log('success', `Verified: Rebuilt ${contributionsCount} contributions`, 'test2-log');
+                        setTestStatus('test2', 'pass');
+                    } else {
+                        throw new Error('No contributions were rebuilt');
+                    }
+                } else {
+                    throw new Error('Failed to rebuild from visual modifications');
+                }
+                
+            } catch (error) {
+                log('error', `Test 2 failed: ${error.message}`, 'test2-log');
+                setTestStatus('test2', 'fail');
+            }
+        }
+
+        async function runTest3() {
+            clearLog('test3-log');
+            setTestStatus('test3', 'pending');
+            
+            log('info', '=== Test 3: Username Detection and Loading ===', 'test3-log');
+            
+            try {
+                // Test username extraction
+                mockOverlay.username = null;
+                mockOverlay.extractUserInfo();
+                
+                if (mockOverlay.username === 'testuser') {
+                    log('success', 'Username extraction successful', 'test3-log');
+                } else {
+                    throw new Error('Username extraction failed');
+                }
+                
+                // Test contribution loading
+                // First save some contributions
+                mockOverlay.contributions = {
+                    '2024-01-05': { ...mockOverlay.contributionLevels[2], date: '2024-01-05' }
+                };
+                await mockOverlay.saveContributions();
+                
+                // Clear contributions and reload
+                mockOverlay.contributions = {};
+                await mockOverlay.loadContributions();
+                
+                if (Object.keys(mockOverlay.contributions).length > 0) {
+                    log('success', 'Contribution loading successful', 'test3-log');
+                    setTestStatus('test3', 'pass');
+                } else {
+                    throw new Error('Contribution loading failed');
+                }
+                
+            } catch (error) {
+                log('error', `Test 3 failed: ${error.message}`, 'test3-log');
+                setTestStatus('test3', 'fail');
+            }
+        }
+
+        async function runTest4() {
+            clearLog('test4-log');
+            setTestStatus('test4', 'pending');
+            
+            log('info', '=== Test 4: Complete Store Changes Integration ===', 'test4-log');
+            
+            try {
+                // Test complete workflow
+                log('info', 'Step 1: Clear all data', 'test4-log');
+                mockOverlay.contributions = {};
+                mockStorage.data = { pendingChanges: [], contributions: {} };
+                
+                log('info', 'Step 2: Simulate user selecting tiles', 'test4-log');
+                mockOverlay.contributions = {
+                    '2024-01-10': { ...mockOverlay.contributionLevels[1], date: '2024-01-10' },
+                    '2024-01-11': { ...mockOverlay.contributionLevels[4], date: '2024-01-11' }
+                };
+                
+                log('info', 'Step 3: Store changes', 'test4-log');
+                const result = await mockOverlay.forceStorePendingChanges();
+                
+                if (result) {
+                    log('success', 'Store changes successful', 'test4-log');
+                    
+                    // Verify complete storage
+                    const data = await mockStorage.getData();
+                    const pendingCount = data.pendingChanges.length;
+                    const contributionsStored = data.contributions?.testuser?.[2024];
+                    
+                    if (pendingCount > 0 && contributionsStored) {
+                        log('success', `Complete integration successful: ${pendingCount} pending changes, contributions stored`, 'test4-log');
+                        setTestStatus('test4', 'pass');
+                    } else {
+                        throw new Error('Storage verification failed');
+                    }
+                } else {
+                    throw new Error('Store changes failed');
+                }
+                
+            } catch (error) {
+                log('error', `Test 4 failed: ${error.message}`, 'test4-log');
+                setTestStatus('test4', 'fail');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            createMockTiles();
+            log('info', 'Test environment initialized', 'test1-log');
+        });
+    </script>
+</body>
+</html>

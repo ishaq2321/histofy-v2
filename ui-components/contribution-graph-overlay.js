@@ -70,7 +70,7 @@ class ContributionGraphOverlay {
   }
 
   // Enhanced activation with better initialization and error handling
-  activate() {
+  async activate() {
     console.log('Histofy: Starting activation process...');
 
     if (this.isActive) {
@@ -118,11 +118,9 @@ class ContributionGraphOverlay {
       
       // Step 7: Skip instruction panel creation for cleaner UI
       
-      // Step 8: Load existing contributions
-      setTimeout(() => {
-        this.loadContributions();
-        console.log('Histofy: Existing contributions loaded');
-      }, 100);
+      // Step 8: Load existing contributions immediately
+      await this.loadContributions();
+      console.log('Histofy: Existing contributions loaded');
       
       // Step 9: Set up protection against deactivation
       this.setupDeactivationProtection();
@@ -593,104 +591,112 @@ class ContributionGraphOverlay {
     }
   }
 
+  // Enhanced loadContributions with better error handling and logging
   async loadContributions() {
-    if (!this.username || !window.histofyStorage) return;
+    console.log('Histofy: Loading contributions...');
+    
+    if (!this.username || !window.histofyStorage) {
+      console.warn('Histofy: Cannot load contributions - missing username or storage');
+      console.log('- Username:', this.username);
+      console.log('- Storage available:', !!window.histofyStorage);
+      return;
+    }
 
     try {
       const data = await window.histofyStorage.getData();
+      console.log('Histofy: Storage data retrieved');
       
       if (data.contributions?.[this.username]?.[this.currentYear]) {
-        this.contributions = { ...data.contributions[this.username][this.currentYear] };
+        const savedContributions = data.contributions[this.username][this.currentYear];
+        this.contributions = { ...savedContributions };
+        
+        console.log(`Histofy: Loaded ${Object.keys(this.contributions).length} contributions from storage`);
         
         // Apply saved contributions to tiles
+        let appliedCount = 0;
         Object.entries(this.contributions).forEach(([date, contribution]) => {
           const tile = document.querySelector(`[data-date="${date}"]`);
           if (tile) {
             this.updateTileAppearance(tile, date, contribution.level);
+            appliedCount++;
+          } else {
+            console.warn(`Histofy: Could not find tile for date ${date}`);
           }
         });
         
-        this.updateInstructionPanel();
-        console.log(`Histofy: Loaded contributions for ${this.username} (${this.currentYear})`);
+        console.log(`Histofy: Applied ${appliedCount} saved contributions to tiles`);
+        console.log(`Histofy: Successfully loaded contributions for ${this.username} (${this.currentYear})`);
+      } else {
+        console.log(`Histofy: No saved contributions found for ${this.username} (${this.currentYear})`);
+        console.log('Histofy: Available users in storage:', Object.keys(data.contributions || {}));
       }
     } catch (error) {
       console.error('Histofy: Failed to load contributions:', error);
     }
   }
 
-  async addToPendingChanges(date, level) {
-    if (!window.histofyStorage) return;
-
-    try {
-      // Get all currently selected dates and their levels
-      const selectedDates = Object.keys(this.contributions);
-      
-      if (selectedDates.length === 0) {
-        console.log('Histofy: No contributions to add to pending changes');
-        return;
-      }
-
-      // Create a comprehensive change entry that includes ALL selected dates
-      const change = {
-        type: 'date_selection',
-        dates: selectedDates,
-        contributions: { ...this.contributions },
-        username: this.username,
-        year: this.currentYear,
-        timestamp: new Date().toISOString(),
-        id: `${this.username}_${this.currentYear}_batch_${Date.now()}`
-      };
-
-      // Get existing pending changes
-      const data = await window.histofyStorage.getData();
-      if (!data.pendingChanges) {
-        data.pendingChanges = [];
-      }
-
-      // Remove any existing change for this same user/year combination
-      data.pendingChanges = data.pendingChanges.filter(existingChange => 
-        !(existingChange.type === 'date_selection' && 
-          existingChange.username === this.username && 
-          existingChange.year === this.currentYear)
-      );
-
-      // Add the new comprehensive change
-      data.pendingChanges.push(change);
-      console.log(`Histofy: Added pending changes for ${selectedDates.length} dates:`, selectedDates);
-
-      await window.histofyStorage.saveData(data);
-      
-      // Update deploy button count immediately
-      if (window.histofyDeployButton) {
-        setTimeout(() => {
-          window.histofyDeployButton.updatePendingCount();
-        }, 100);
-      }
-
-    } catch (error) {
-      console.error('Histofy: Failed to add pending changes:', error);
-    }
-  }
-
   // Force store pending changes when "Store Changes" button is clicked
   async forceStorePendingChanges() {
-    console.log('Histofy: Force storing pending changes');
+    console.log('Histofy: Force storing pending changes - Starting diagnostic...');
     
     if (!window.histofyStorage) {
       console.error('Histofy: Storage not available');
       return false;
     }
 
+    // Enhanced diagnostic logging
+    console.log('Histofy: Current state check:');
+    console.log('- Username:', this.username);
+    console.log('- Current Year:', this.currentYear);
+    console.log('- Is Active:', this.isActive);
+    console.log('- Contributions Count:', Object.keys(this.contributions).length);
+    console.log('- Contributions Object:', this.contributions);
+
     try {
-      // Get all currently selected dates and their levels
+      // Step 1: Ensure we have user info
+      if (!this.username || this.username === 'unknown-user') {
+        console.log('Histofy: Re-extracting user info...');
+        this.extractUserInfo();
+        if (!this.username) {
+          this.username = 'unknown-user';
+        }
+        console.log('Histofy: Updated username:', this.username);
+      }
+
+      // Step 2: Try to reload contributions if empty
+      if (Object.keys(this.contributions).length === 0) {
+        console.log('Histofy: No current contributions, attempting to reload from storage...');
+        await this.loadContributions();
+        console.log('Histofy: After reload - Contributions Count:', Object.keys(this.contributions).length);
+      }
+
+      // Step 3: If still no contributions, check for visual modifications
+      if (Object.keys(this.contributions).length === 0) {
+        console.log('Histofy: No stored contributions, scanning for visual modifications...');
+        const visualModifications = this.scanForVisualModifications();
+        if (visualModifications.length > 0) {
+          console.log(`Histofy: Found ${visualModifications.length} visual modifications, rebuilding contributions...`);
+          this.rebuildContributionsFromVisual(visualModifications);
+        }
+      }
+
+      // Step 4: Get all currently selected dates and their levels
       const selectedDates = Object.keys(this.contributions);
       
       if (selectedDates.length === 0) {
-        console.log('Histofy: No contributions to store');
+        console.log('Histofy: Still no contributions to store after all attempts');
+        console.log('Histofy: Diagnostic - Check if tiles have been modified:');
+        const modifiedTiles = document.querySelectorAll('[data-histofy-title]');
+        console.log(`Histofy: Found ${modifiedTiles.length} tiles with Histofy modifications`);
+        if (modifiedTiles.length > 0) {
+          console.log('Histofy: Visual modifications exist but not in contributions object - attempting emergency rebuild...');
+          this.emergencyRebuildContributions();
+          return await this.forceStorePendingChanges(); // Retry once
+        }
         return false;
       }
 
-      // Create a comprehensive change entry that includes ALL selected dates
+      // Step 5: Create a comprehensive change entry that includes ALL selected dates
       const change = {
         type: 'date_selection',
         dates: selectedDates,
@@ -701,26 +707,38 @@ class ContributionGraphOverlay {
         id: `${this.username}_${this.currentYear}_manual_${Date.now()}`
       };
 
-      // Get existing pending changes
+      console.log('Histofy: Creating change entry:', {
+        type: change.type,
+        datesCount: change.dates.length,
+        username: change.username,
+        year: change.year,
+        id: change.id
+      });
+
+      // Step 6: Get existing pending changes
       const data = await window.histofyStorage.getData();
       if (!data.pendingChanges) {
         data.pendingChanges = [];
       }
 
-      // Remove any existing change for this same user/year combination
+      // Step 7: Remove any existing change for this same user/year combination
+      const originalCount = data.pendingChanges.length;
       data.pendingChanges = data.pendingChanges.filter(existingChange => 
         !(existingChange.type === 'date_selection' && 
           existingChange.username === this.username && 
           existingChange.year === this.currentYear)
       );
+      const removedCount = originalCount - data.pendingChanges.length;
 
-      // Add the new comprehensive change
+      // Step 8: Add the new comprehensive change
       data.pendingChanges.push(change);
-      console.log(`Histofy: Manually stored pending changes for ${selectedDates.length} dates:`, selectedDates);
+      console.log(`Histofy: Manually stored pending changes for ${selectedDates.length} dates`);
+      console.log(`Histofy: Removed ${removedCount} existing changes, added 1 new change`);
+      console.log('Histofy: Selected dates:', selectedDates);
 
       await window.histofyStorage.saveData(data);
       
-      // Update deploy button count immediately
+      // Step 9: Update deploy button count immediately
       if (window.histofyDeployButton) {
         setTimeout(() => {
           window.histofyDeployButton.updatePendingCount();
@@ -734,50 +752,107 @@ class ContributionGraphOverlay {
     }
   }
 
-  // Prevent navigation events from deactivating the overlay
-  preventNavigationDeactivation() {
-    // Override any existing navigation handlers that might interfere
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
+  // Scan for tiles that have been visually modified but not tracked in contributions
+  scanForVisualModifications() {
+    const modifications = [];
+    const modifiedTiles = document.querySelectorAll('[data-histofy-title], [title*="Modified by Histofy"]');
     
-    // Store original methods for restoration
-    if (!this._originalHistoryMethods) {
-      this._originalHistoryMethods = {
-        pushState: originalPushState,
-        replaceState: originalReplaceState
-      };
-      
-      // Override history methods to maintain activation
-      history.pushState = (...args) => {
-        console.log('Histofy: Navigation detected, maintaining activation');
-        originalPushState.apply(history, args);
-        
-        // Re-activate after navigation if we were active
-        if (this.isActive) {
-          setTimeout(() => {
-            this.setupContributionTiles();
-          }, 500);
+    modifiedTiles.forEach(tile => {
+      const date = tile.getAttribute('data-date');
+      if (date) {
+        const title = tile.getAttribute('title') || tile.getAttribute('data-histofy-title');
+        const levelMatch = title.match(/(\d+-?\d*|\d+\+) commits/);
+        if (levelMatch) {
+          const commitsText = levelMatch[1];
+          let level = 1; // Default to low
+          
+          // Map commits text back to level
+          if (commitsText === '0') level = 0;
+          else if (commitsText.includes('1-3')) level = 1;
+          else if (commitsText.includes('10-14')) level = 2;
+          else if (commitsText.includes('20-24')) level = 3;
+          else if (commitsText.includes('25+')) level = 4;
+          
+          modifications.push({ date, level, commitsText });
         }
-      };
+      }
+    });
+    
+    console.log(`Histofy: Scanned and found ${modifications.length} visual modifications`);
+    return modifications;
+  }
+
+  // Rebuild contributions object from visual modifications
+  rebuildContributionsFromVisual(modifications) {
+    modifications.forEach(({ date, level }) => {
+      if (level > 0) {
+        this.contributions[date] = {
+          ...this.contributionLevels[level],
+          date: date
+        };
+      }
+    });
+    
+    console.log(`Histofy: Rebuilt contributions with ${Object.keys(this.contributions).length} entries`);
+    this.saveContributions(); // Save the rebuilt contributions
+  }
+
+  // Emergency rebuild - scan all tiles and check their colors
+  emergencyRebuildContributions() {
+    console.log('Histofy: Emergency rebuild - scanning all tiles...');
+    const tiles = document.querySelectorAll('[data-date]');
+    let rebuiltCount = 0;
+    
+    tiles.forEach(tile => {
+      const date = tile.getAttribute('data-date');
+      if (!date) return;
       
-      history.replaceState = (...args) => {
-        console.log('Histofy: Page replace detected, maintaining activation');
-        originalReplaceState.apply(history, args);
-        
-        // Re-activate after navigation if we were active
-        if (this.isActive) {
-          setTimeout(() => {
-            this.setupContributionTiles();
-          }, 500);
+      // Get current color
+      const currentColor = tile.getAttribute('fill') || tile.style.backgroundColor || '';
+      
+      // Check if it matches any of our contribution levels
+      for (let level = 1; level <= 4; level++) {
+        const levelConfig = this.contributionLevels[level];
+        if (currentColor.toLowerCase() === levelConfig.color.toLowerCase()) {
+          this.contributions[date] = {
+            ...levelConfig,
+            date: date
+          };
+          rebuiltCount++;
+          console.log(`Histofy: Emergency rebuild - found ${date} at level ${level}`);
+          break;
         }
-      };
+      }
+    });
+    
+    console.log(`Histofy: Emergency rebuild completed - rebuilt ${rebuiltCount} contributions`);
+    if (rebuiltCount > 0) {
+      this.saveContributions();
     }
   }
 
-  // Public API methods with better logging
+  // Enhanced getContributions with diagnostic info
   getContributions() {
     const contributions = { ...this.contributions };
-    console.log(`Histofy: Getting contributions - ${Object.keys(contributions).length} dates with modifications`);
+    const count = Object.keys(contributions).length;
+    console.log(`Histofy: Getting contributions - ${count} dates with modifications`);
+    
+    if (count === 0) {
+      console.log('Histofy: No contributions found - running diagnostics...');
+      console.log('- Username:', this.username);
+      console.log('- Current Year:', this.currentYear);
+      console.log('- Is Active:', this.isActive);
+      
+      // Check for visual modifications
+      const modifiedTiles = document.querySelectorAll('[data-histofy-title]');
+      console.log(`- Visual modifications found: ${modifiedTiles.length}`);
+      
+      if (modifiedTiles.length > 0) {
+        console.log('Histofy: Visual modifications exist but not in contributions object!');
+        console.log('Histofy: This indicates a synchronization issue.');
+      }
+    }
+    
     return contributions;
   }
 
