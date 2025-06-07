@@ -1,228 +1,209 @@
 # 🎨 Histofy - GitHub History Modifier
 
-**Transform your GitHub contribution history with ease!**
+**Transform your GitHub contribution history with precision and deploy real commits to match your vision!**
 
-Histofy is a powerful Chrome/Edge extension that allows you to modify your GitHub contribution graph by clicking individual tiles and cycling through different contribution levels. Perfect for creating visual patterns, cleaning up your history, or just having fun with your GitHub profile.
+Histofy is a powerful Chrome extension that allows you to modify your GitHub contribution graph visually and deploy actual commits to create your desired contribution pattern. Perfect for learning about GitHub's contribution system, creating visual patterns, or demonstrating git workflows.
 
 ## ✨ Features
 
-### 🎯 Core Functionality
-- **Click-to-Cycle**: Click any contribution tile to cycle through 5 levels:
-  1. **1st click**: Low contributions (1-3 commits) - Darkest green (#216e39)
-  2. **2nd click**: Medium contributions (4-9 commits) - Dark green (#30a14e)
-  3. **3rd click**: High contributions (10-19 commits) - Medium green (#40c463)
-  4. **4th click**: Very high contributions (20+ commits) - Lightest green (#9be9a8)
-  5. **5th click**: Back to no contributions (clear) - No color (#ebedf0)
+### 🎯 Visual Contribution Editor
+- **Interactive Graph Editing**: Click any date tile to cycle through contribution levels
+- **Real-time Preview**: See changes instantly with proper GitHub color mapping
+- **Persistent Storage**: Your selections are saved automatically per user/repository
+- **Year Navigation**: Works seamlessly across different years
 
-### 🔧 Advanced Features
-- **Persistent Storage**: Your modifications are automatically saved per user/year
-- **Year Navigation**: Works seamlessly when switching between different years
-- **Visual Feedback**: Hover previews and color-coded instruction panel
-- **Duplicate Button Prevention**: Smart detection prevents multiple "Activate" buttons
+### 🚀 Real Deployment System
+- **GitHub API Integration**: Deploy actual commits to create real contribution patterns
+- **Repository Management**: Automatically creates or uses existing repositories
+- **Commit Optimization**: Generates multiple commits per date based on contribution intensity
+- **Compliance**: Follows GitHub's contribution counting rules for proper recognition
 
-### 🎨 User Interface
-- **Clean Integration**: Seamlessly integrates with GitHub's existing UI
-- **Responsive Design**: Works on all screen sizes
-- **Dark Mode Support**: Automatically adapts to GitHub's theme
-- **Real-time Feedback**: Live counter showing selected tiles and their levels
+### 📊 Contribution Levels
+Based on extensive testing and GitHub's contribution intensity system:
+
+- **🔲 None**: 0 commits - No color (#ebedf0)
+- **🟢 Low**: 1-3 commits - Darkest green (#216e39)
+- **🟢 Medium**: 10-14 commits - Dark green (#30a14e)
+- **🟢 High**: 20-24 commits - Medium green (#40c463)
+- **🟢 Very High**: 25+ commits - Lightest green (#9be9a8)
+
+*Note: Commit ranges have been validated through real deployment testing to ensure accurate mapping to GitHub's contribution graph intensity levels.*
 
 ## 🚀 Installation
 
-### Method 1: Load Unpacked Extension (Recommended for Testing)
+### Load as Unpacked Extension
 
-1. **Download/Clone the Extension**
+1. **Download the Extension**
    ```bash
-   git clone <repository-url>
-   cd Histofy
+   git clone [repository-url]
+   cd histofy-v2
    ```
 
-2. **Open Chrome/Edge Extensions Page**
-   - Chrome: Navigate to `chrome://extensions/`
-   - Edge: Navigate to `edge://extensions/`
+2. **Open Chrome Extensions**
+   - Navigate to `chrome://extensions/`
+   - Enable "Developer mode" in the top-right corner
 
-3. **Enable Developer Mode**
-   - Toggle the "Developer mode" switch in the top-right corner
-
-4. **Load the Extension**
+3. **Install Extension**
    - Click "Load unpacked"
-   - Select the `Histofy` folder
-   - Extension should now appear in your extensions list
-
-5. **Verify Installation**
+   - Select the `histofy-v2` folder
    - The Histofy icon should appear in your browser toolbar
-   - Visit any GitHub profile page to test
 
-### Method 2: Extension Store (Coming Soon)
-*We're working on publishing to the Chrome Web Store!*
+4. **Grant Permissions**
+   - The extension needs access to GitHub.com and GitHub API
+   - These permissions enable visual editing and commit deployment
 
-## 📖 Usage Guide
+## 📖 How to Use
 
-### Getting Started
+### 1. Visual Editing Mode
 
 1. **Visit a GitHub Profile**
-   - Navigate to any GitHub user's profile (e.g., `github.com/username`)
-   - Scroll down to the contribution graph section
+   - Go to any GitHub user's profile page
+   - Scroll to the contribution graph section
 
 2. **Activate Histofy**
-   - Look for the "🚀 Activate Histofy" button near the contribution graph
-   - Click the button to enable the overlay
+   - Look for the "🚀 Activate Histofy" button
+   - Click to enable the interactive overlay
 
-3. **Start Editing**
-   - Click any contribution tile to cycle through levels
-   - Watch the color change and counter update in real-time
-   - Use the instruction panel to understand the color coding
+3. **Edit Contributions**
+   - Click any date tile to cycle through contribution levels
+   - Use the color guide to understand intensity levels
+   - Your selections are automatically saved
 
-### GitHub Contribution Levels (CORRECTED)
+### 2. Deployment Mode
 
-Based on GitHub's official contribution intensity algorithm:
+1. **Configure GitHub Token**
+   - Click the Histofy extension icon in your toolbar
+   - Navigate to Settings and add your GitHub Personal Access Token
+   - Required scopes: `repo`, `user:email`
 
-- **🔲 None (0 commits)**: No color (#ebedf0)
-- **🟢 Low (1-3 commits)**: Darkest green (#216e39) - Most saturated  
-- **🟢 Medium (4-9 commits)**: Dark green (#30a14e)
-- **🟢 High (10-19 commits)**: Medium green (#40c463)
-- **🟢 Very High (20+ commits)**: Lightest green (#9be9a8) - Least saturated
+2. **Deploy Changes**
+   - After making visual selections, click "Deploy to GitHub"
+   - Choose target repository or create a new one
+   - Monitor deployment progress in real-time
 
-**Important Note:** GitHub uses an inverse color intensity system where fewer commits result in darker (more saturated) greens, and more commits result in lighter (less saturated) greens. This is opposite to most visualization systems but is GitHub's established design pattern.
+3. **Verify Results**
+   - Changes will appear in your contribution graph within 24 hours
+   - All commits follow GitHub's contribution counting rules
 
-## 🛠️ Development
+## 🏗️ Architecture
 
-### File Structure
+### Core Components
+
 ```
-Histofy/
-├── manifest.json                 # Extension configuration
-├── storage/
-│   └── local-storage-manager.js  # Data persistence
-├── ui-components/
-│   ├── contribution-graph-overlay.js  # Main overlay logic
-│   ├── commit-timeline-editor.js      # Timeline editing
-│   └── deploy-button.js              # Deployment features
-├── content-scripts/
-│   ├── github-detector.js        # Page detection
-│   ├── profile-injector.js       # Profile page integration
-│   └── repository-injector.js    # Repository page features
-├── styles/
-│   └── histofy-ui.css           # Extension styling
+histofy-v2/
+├── manifest.json                     # Extension configuration
 ├── api/
-│   ├── github-api.js            # GitHub API integration
-│   └── git-operations.js        # Git operations
+│   ├── github-api.js                # GitHub API client
+│   ├── github-deployer.js           # Deployment engine
+│   └── git-operations.js            # Git operations wrapper
+├── content-scripts/
+│   ├── github-detector.js           # Page type detection
+│   ├── profile-injector.js          # Profile page integration
+│   └── repository-injector.js       # Repository page features
+├── ui-components/
+│   ├── contribution-graph-overlay.js # Visual editor
+│   ├── commit-timeline-editor.js     # Timeline manipulation
+│   └── deploy-button.js             # Deployment interface
+├── storage/
+│   └── local-storage-manager.js     # Data persistence
 ├── background/
-│   └── service-worker.js        # Background tasks
+│   └── service-worker.js            # Background processes
 ├── popup/
-│   ├── popup.html               # Extension popup
-│   ├── popup.css                # Popup styling
-│   └── popup.js                 # Popup functionality
-└── icons/                       # Extension icons
+│   ├── popup.html                   # Extension popup
+│   ├── popup.css                    # Popup styling
+│   └── popup.js                     # Popup logic
+├── styles/
+│   └── histofy-ui.css              # Extension UI styles
+└── icons/                          # Extension icons
+    ├── icon16.png
+    ├── icon32.png
+    ├── icon48.png
+    └── icon128.png
 ```
 
-### Key Components
+### Key Features
 
-#### 1. Contribution Graph Overlay
-- **File**: `ui-components/contribution-graph-overlay.js`
-- **Purpose**: Main logic for tile interaction and visual feedback
-- **Features**: Click handling, level cycling, storage integration
+#### GitHub API Integration
+- **Authentication**: Secure token-based authentication
+- **Repository Operations**: Create, read, and modify repositories
+- **Commit Management**: Deploy commits with proper timestamps and metadata
+- **Rate Limiting**: Built-in handling of GitHub API rate limits
 
-#### 2. Local Storage Manager
-- **File**: `storage/local-storage-manager.js`
-- **Purpose**: Persistent data storage per user/year
-- **Features**: Save/load contributions, data export/import
+#### Data Management
+- **Local Storage**: Persistent storage of contribution selections
+- **User Isolation**: Separate data storage per GitHub user
+- **Export/Import**: Backup and restore contribution patterns
 
-#### 3. Profile Injector
-- **File**: `content-scripts/profile-injector.js`
-- **Purpose**: Injects the "Activate Histofy" button on profile pages
-- **Features**: Mutation observer, year change detection, duplicate prevention
+#### Contribution System Compliance
+- **Email Verification**: Uses GitHub account email for proper attribution
+- **UTC Timestamps**: Ensures commits are properly dated
+- **Default Branch**: Commits to main/master branch for contribution counting
+- **Repository Ownership**: Verifies push permissions before deployment
+
+## 🔧 Development
+
+### Prerequisites
+- Chrome/Chromium browser
+- GitHub Personal Access Token (for deployment features)
+- Basic knowledge of JavaScript and Chrome Extension APIs
 
 ### Testing
+- Visual editing works immediately after installation
+- Deployment requires valid GitHub token and repository permissions
+- Use test repositories to verify deployment functionality
 
-#### Run Diagnostics
-```bash
-cd Histofy
-./test-extension.sh
-```
+### Debug Mode
+Enable debug logging by opening browser console and looking for "Histofy:" prefixed messages.
 
-#### Test Page
-Open `test-page.html` in your browser to test functionality without GitHub:
-```bash
-# Open in browser
-open test-page.html  # macOS
-xdg-open test-page.html  # Linux
-start test-page.html  # Windows
-```
+## ⚠️ Important Notes
 
-#### Debug Mode
-Enable debug logging by setting `debugMode = true` in the overlay constructor.
+### GitHub Contribution Rules
+This extension creates real commits that follow GitHub's contribution counting rules:
+
+1. **Email Match**: Commits use your GitHub account email
+2. **Repository Access**: You must have push access to the target repository
+3. **Default Branch**: Commits are made to the repository's default branch
+4. **UTC Timestamps**: All commits use proper UTC timestamps
+5. **24-Hour Delay**: New contributions may take up to 24 hours to appear
+
+### Responsible Usage
+- Use this tool for learning, demonstration, or legitimate pattern creation
+- Don't create misleading contribution history for deceptive purposes
+- Respect GitHub's Terms of Service and community guidelines
+- Consider the impact on repository history when deploying to shared repositories
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-#### Extension Not Loading
-- **Solution**: Check that all files are present and manifest.json is valid
-- **Debug**: Run `./test-extension.sh` to verify file integrity
+**Extension Button Not Appearing**
+- Refresh the GitHub page
+- Verify you're on a valid GitHub profile or repository page
+- Check browser console for error messages
 
-#### Button Not Appearing
-- **Cause**: Page might not be detected as a GitHub profile
-- **Solution**: Refresh the page, check URL format
-- **Debug**: Look for "Histofy:" messages in browser console
+**Deployment Failures**
+- Verify GitHub token has correct permissions (`repo`, `user:email`)
+- Ensure target repository exists and you have push access
+- Check network connection and GitHub API status
 
-#### Tiles Not Responding
-- **Cause**: Overlay might not be properly activated
-- **Solution**: Click "Activate Histofy" button first
-- **Debug**: Check if contribution squares have `[data-date]` attributes
-
-#### Storage Not Working
-- **Cause**: LocalStorage might be disabled or full
-- **Solution**: Check browser storage settings
-- **Debug**: Look for storage error messages in console
-
-### Debug Information
-
-#### Browser Console Messages
-Look for messages starting with "Histofy:" to track extension behavior:
-```
-Histofy: Contribution graph overlay initialized
-Histofy: Found 365 contribution squares
-Histofy: Cycling tile 2024-01-01 from level 0 to 1
-Histofy: Stored contributions for username (2024)
-```
-
-#### Extension Diagnostics
-Run the diagnostic script to check extension health:
-```bash
-./test-extension.sh
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how to get started:
-
-1. **Fork the Repository**
-2. **Create a Feature Branch**
-3. **Make Your Changes**
-4. **Test Thoroughly**
-5. **Submit a Pull Request**
-
-### Development Guidelines
-- Follow existing code style and patterns
-- Add console logging for debugging (prefix with "Histofy:")
-- Test on multiple GitHub profiles and years
-- Ensure responsive design compatibility
+**Contribution Graph Not Updating**
+- Wait up to 24 hours for GitHub to process new commits
+- Verify commits appear in the target repository
+- Check that commits use your GitHub account email
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## ⚠️ Disclaimer
-
-This extension modifies the visual appearance of GitHub contribution graphs locally in your browser. It does not actually change your Git history or create fake commits. The modifications are purely cosmetic and are stored locally in your browser.
+MIT License - see LICENSE file for details.
 
 ## 🆘 Support
 
-- **Issues**: Report bugs and feature requests via GitHub Issues
-- **Debug**: Use the built-in test page and diagnostic tools
-- **Community**: Share tips and tricks with other users
+For issues, feature requests, or questions:
+- Check the browser console for debug information
+- Verify GitHub token permissions and repository access
+- Ensure you're following GitHub's contribution counting requirements
 
 ---
 
-**Made with ❤️ by the Histofy Team**
+**Histofy v1.0.0** - Educational tool for understanding GitHub contributions through visual editing and real commit deployment.
 
-*Transform your GitHub story, one tile at a time!*
+*⚠️ This tool creates real commits. Use responsibly and in accordance with GitHub's Terms of Service.*
