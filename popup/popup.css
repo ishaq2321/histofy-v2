@@ -39,58 +39,56 @@ body {
   background: var(--popup-bg);
   color: var(--popup-text);
   line-height: 1.5;
+  width: 200px;
+  height: 80px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 /* Popup Container */
 .histofy-popup {
-  width: 380px;
-  max-height: 600px;
+  width: 200px;
+  height: 80px;
   background: var(--popup-bg);
   border-radius: var(--popup-radius);
   overflow: hidden;
   box-shadow: var(--popup-shadow);
-}
-
-/* Header */
-.histofy-popup-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, var(--popup-primary), #0860ca);
-  color: white;
-}
-
-.histofy-logo h1 {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0 0 2px 0;
-}
-
-.histofy-logo p {
-  font-size: 12px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.histofy-version {
-  font-size: 11px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 500;
+  flex-direction: column;
 }
 
 /* Content */
 .histofy-popup-content {
   padding: 0;
-  max-height: 480px;
-  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Simple Branding */
+.histofy-simple-branding {
+  text-align: center;
+  padding: 16px;
+}
+
+.histofy-simple-branding h1 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: var(--popup-primary);
+}
+
+.histofy-simple-branding p {
+  font-size: 11px;
+  color: var(--popup-text-secondary);
+  margin: 0;
 }
 
 /* Sections */
 .histofy-section {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--popup-border);
 }
 
@@ -99,15 +97,15 @@ body {
 }
 
 .histofy-section h3 {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: var(--popup-text);
 }
 
 /* Status Section */
 .histofy-status-section {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: var(--popup-bg-secondary);
   border-bottom: 1px solid var(--popup-border);
 }
@@ -116,8 +114,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: 4px;
+  font-size: 12px;
 }
 
 .histofy-status-item:last-child {
@@ -138,17 +136,17 @@ body {
 /* Quick Actions */
 .histofy-quick-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .histofy-popup-btn {
   flex: 1;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 1px solid var(--popup-border);
   border-radius: var(--popup-radius);
   background: var(--popup-bg);
   color: var(--popup-text);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -156,7 +154,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .histofy-popup-btn:hover {
@@ -184,12 +182,12 @@ body {
 .histofy-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 8px;
 }
 
 .histofy-stat-item {
   text-align: center;
-  padding: 12px 8px;
+  padding: 8px 6px;
   background: var(--popup-bg-secondary);
   border-radius: var(--popup-radius);
   border: 1px solid var(--popup-border);
@@ -197,14 +195,14 @@ body {
 
 .histofy-stat-number {
   display: block;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--popup-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .histofy-stat-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--popup-text-secondary);
   text-transform: uppercase;
   font-weight: 600;
@@ -255,7 +253,7 @@ body {
 
 /* Settings */
 .histofy-settings-list {
-  space: 8px 0;
+  margin: 8px 0;
 }
 
 .histofy-setting-item {
@@ -355,10 +353,11 @@ body {
 
 /* Footer */
 .histofy-popup-footer {
-  padding: 12px 20px;
+  padding: 8px 16px;
   background: var(--popup-bg-secondary);
   border-top: 1px solid var(--popup-border);
   text-align: center;
+  flex-shrink: 0;
 }
 
 .histofy-popup-footer p {

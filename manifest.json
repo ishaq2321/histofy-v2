@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Histofy - GitHub History Modifier",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Manipulate GitHub commit history and contribution graphs with ease",
   "permissions": [
     "storage",
