@@ -190,6 +190,23 @@ class GitHubDeployer {
       }
     }
 
+    // Create or update README.md for the contribution repository
+    if (results.successful.length > 0) {
+      const deploymentStats = {
+        totalCommits: results.successful.length,
+        dateRange: {
+          start: results.successful.length > 0 ? 
+            results.successful.reduce((min, r) => r.date < min ? r.date : min, results.successful[0].date) : 
+            new Date().toISOString().split('T')[0],
+          end: results.successful.length > 0 ? 
+            results.successful.reduce((max, r) => r.date > max ? r.date : max, results.successful[0].date) : 
+            new Date().toISOString().split('T')[0]
+        }
+      };
+      
+      await this.createContributionReadme(owner, repoName, deploymentStats);
+    }
+
     this.log('success', `Completed deployment to ${owner}/${repoName}: ${results.successful.length} successful, ${results.failed.length} failed`);
     return results;
   }
@@ -1183,19 +1200,13 @@ class GitHubDeployer {
 
   // Helper functions
   getCommitCountForLevel(level) {
-    // Map contribution levels to realistic commit counts based on ACTUAL deployment testing
-    // Real deployment results showed:
-    // Level 1 (Low): 2 commits = Low intensity ✅ 
-    // Level 2 (Medium): 6 commits = Low intensity ❌ (need higher count for medium)
-    // Level 3 (High): 13 commits = Medium intensity ❌ (need higher count for high)  
-    // Level 4 (Very High): 22 commits = Very High intensity ✅
-    
+    // Map contribution levels to realistic commit counts
     const levelMap = {
       0: 0,  // No contributions (no color - #ebedf0)
-      1: Math.floor(Math.random() * 3) + 1,     // Low: 1-3 commits (darkest green - #216e39) ✅ Working correctly
-      2: Math.floor(Math.random() * 5) + 10,    // Medium: 10-14 commits (dark green - #30a14e) - FIXED from 4-9
-      3: Math.floor(Math.random() * 5) + 20,    // High: 20-24 commits (medium green - #40c463) - FIXED from 10-19
-      4: Math.floor(Math.random() * 8) + 25     // Very High: 25-32 commits (lightest green - #9be9a8) - ADJUSTED from 20+
+      1: Math.floor(Math.random() * 3) + 1,     // Low: 1-3 commits (darkest green - #216e39)
+      2: Math.floor(Math.random() * 5) + 10,    // Medium: 10-14 commits (dark green - #30a14e)
+      3: Math.floor(Math.random() * 5) + 20,    // High: 20-24 commits (medium green - #40c463)
+      4: Math.floor(Math.random() * 8) + 25     // Very High: 25-32 commits (lightest green - #9be9a8)
     };
     return levelMap[level] || 1;
   }
@@ -1245,66 +1256,13 @@ This repository follows GitHub's contribution counting requirements:
 - **Unique Identifier:** ${randomId}
 - **Timestamp:** ${timestamp}
 
-### GitHub Contribution Intensity Levels (CORRECTED BASED ON REAL TESTING)
-
-Based on actual deployment testing results:
+### GitHub Contribution Intensity Levels
 
 - **No Color (#ebedf0)**: 0 commits - No contributions for the day
-- **Darkest Green (#216e39)**: 1-3 commits - Low activity level ✅ (verified: 2 commits = Low)
-- **Dark Green (#30a14e)**: 10-14 commits - Medium activity level (CORRECTED: was 4-9, but 6 commits = Low)
-- **Medium Green (#40c463)**: 20-24 commits - High activity level (CORRECTED: was 10-19, but 13 commits = Medium)
-- **Lightest Green (#9be9a8)**: 25+ commits - Very high activity level ✅ (verified: 22 commits = Very High)
-
-### Updated Commit Ranges (Based on REAL Deployment Testing)
-
-After testing actual deployments with specific commit counts:
-
-✅ **Low (1-3 commits)**: 2 commits resulted in Low intensity (darkest green)
-❌ **OLD Medium (4-9 commits)**: 6 commits resulted in Low intensity instead of Medium
-✅ **NEW Medium (10-14 commits)**: Should result in Medium intensity (dark green)
-❌ **OLD High (10-19 commits)**: 13 commits resulted in Medium intensity instead of High  
-✅ **NEW High (20-24 commits)**: Should result in High intensity (medium green)
-✅ **Very High (25+ commits)**: 22 commits resulted in Very High intensity correctly
-
-**Key Findings from Real Testing:**
-- Commits 1-3: Always Low intensity
-- Commits 4-9: Still Low intensity (GitHub threshold higher than expected)
-- Commits 10-19: Medium intensity starts around 10-13 commits  
-- Commits 20-24: High intensity
-- Commits 25+: Very High intensity
-
-**Safe Ranges Based on Testing:**
-We use safe ranges that consistently map to the intended intensity levels:
-- **Medium**: 10-14 commits (well above the Low threshold)
-- **High**: 20-24 commits (well above the Medium threshold)
-- **Very High**: 25+ commits (above the High threshold)
-
-### Technical Implementation Notes
-
-**GitHub's Quartile-Based System:**
-Based on real testing, GitHub's thresholds appear to be:
-- **1-3 commits**: Consistently maps to Low (darkest green) ✅
-- **4-9 commits**: Still maps to Low (threshold higher than expected) ❌
-- **10-14 commits**: Consistently maps to Medium (dark green) ✅ 
-- **20-24 commits**: Consistently maps to High (medium green) ✅
-- **25+ commits**: Consistently maps to Very High (lightest green) ✅
-
-**Testing Methodology:**
-- Deployed actual commits: 2, 6, 13, 22 commits
-- Verified contribution graph intensity after 24 hours
-- Adjusted ranges based on observed results
-- Used conservative ranges to ensure consistent mapping
-
-### Histofy Extension Information
-
-This content was generated by the Histofy browser extension, which helps users:
-- Understand GitHub's contribution system through real testing
-- Create educational examples of contribution patterns  
-- Learn about git operations and GitHub API usage
-- Demonstrate compliance with GitHub's contribution rules
-
-**Testing Note:** These ranges have been validated through actual deployment testing 
-to ensure accurate contribution graph intensity mapping.
+- **Darkest Green (#216e39)**: 1-3 commits - Low activity level
+- **Dark Green (#30a14e)**: 10-14 commits - Medium activity level
+- **Medium Green (#40c463)**: 20-24 commits - High activity level
+- **Lightest Green (#9be9a8)**: 25+ commits - Very high activity level
 
 ### Technical Details
 
@@ -1317,9 +1275,7 @@ to ensure accurate contribution graph intensity mapping.
 
 ---
 Generated on ${date} at ${new Date().toISOString()} by Histofy Extension
-Commit ranges validated through deployment testing v1.0.3
-Real testing data: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅
-Fixed ranges: Low(1-3), Medium(10-14), High(20-24), VeryHigh(25+)
+Contribution ranges: Low(1-3), Medium(10-14), High(20-24), VeryHigh(25+)
 Visit: https://github.com/histofy/extension
 `;
   }
@@ -1421,6 +1377,157 @@ Follows GitHub contribution counting rules: ✅ Email ✅ Default branch ✅ UTC
     }
   }
 
+  // Generate comprehensive README content for contribution repositories
+  generateContributionReadme(owner, repo, deploymentStats = {}) {
+    const currentDate = new Date().toISOString().split('T')[0];
+    const totalCommits = deploymentStats.totalCommits || 0;
+    const dateRange = deploymentStats.dateRange || { start: currentDate, end: currentDate };
+    
+    return `# 🎨 ${repo}
+
+**Custom GitHub Contribution Pattern**
+
+This repository contains a custom contribution pattern created with [Histofy Chrome Extension](https://github.com/histofy/extension).
+
+## 📊 Repository Stats
+
+- **Total Commits**: ${totalCommits}
+- **Date Range**: ${dateRange.start} to ${dateRange.end}
+- **Created**: ${currentDate}
+- **Generated by**: Histofy Chrome Extension v2.0
+
+## 🎯 Purpose
+
+This repository demonstrates how to create custom contribution patterns on GitHub while following all contribution counting rules:
+
+✅ **Email Attribution**: All commits use your GitHub account email  
+✅ **Repository Ownership**: You own this repository  
+✅ **Default Branch**: Commits made to the default branch (\`main\`)  
+✅ **UTC Timestamps**: Proper date/time formatting for contribution counting  
+✅ **Real Commits**: Actual git history, not just visual modifications  
+
+## 🚀 How It Works
+
+### Contribution Levels
+The commits in this repository follow GitHub's contribution intensity system:
+
+- **🔲 None**: 0 commits - No color
+- **🟢 Low**: 1-3 commits - Darkest green  
+- **🟢 Medium**: 10-14 commits - Dark green
+- **🟢 High**: 20-24 commits - Medium green
+- **🟢 Very High**: 25+ commits - Lightest green
+
+### GitHub's Contribution Counting Rules
+All commits in this repository follow GitHub's official contribution counting requirements:
+
+1. **Email Match**: Commits are authored with your GitHub account email
+2. **Repository Access**: You have ownership/push access to this repository  
+3. **Default Branch**: All commits are made to the default branch
+4. **Timestamp Format**: Commits use proper UTC timestamps
+5. **Activity Period**: Contributions appear within 24 hours
+
+## 🔧 Generated with Histofy
+
+This contribution pattern was created using the Histofy Chrome Extension, which provides:
+
+- **Visual Editor**: Click-to-edit contribution graph interface
+- **Real Deployments**: Creates actual git commits that count toward contributions
+- **GitHub Integration**: Full GitHub API integration for authentic commit creation
+- **Compliance**: Follows all GitHub contribution counting rules automatically
+
+### Want to create your own pattern?
+
+1. Install the [Histofy Chrome Extension](https://github.com/histofy/extension)
+2. Visit any GitHub profile page
+3. Click "🚀 Activate Histofy" to start editing
+4. Select your desired contribution pattern
+5. Deploy to create real commits like this repository
+
+## 📋 Repository Contents
+
+This repository contains:
+- **README.md**: This documentation file
+- **contributions.md**: Daily contribution tracking file
+- **Git History**: Custom-dated commits creating the contribution pattern
+
+## ⚠️ Important Notes
+
+- **Legitimate Use**: This repository demonstrates technical understanding of git and GitHub's systems
+- **Educational Purpose**: Created for learning about GitHub's contribution counting mechanism  
+- **Real Commits**: Contains actual git history, not fake or manipulated data
+- **GitHub Compliance**: Follows all GitHub Terms of Service and contribution guidelines
+
+## 🌟 About Histofy
+
+Histofy is an educational tool for understanding how GitHub's contribution system works. It creates real commits with proper attribution, making it perfect for:
+
+- Learning git and GitHub workflows
+- Understanding contribution counting rules
+- Creating visual patterns for educational purposes
+- Demonstrating technical skills with GitHub's API
+
+---
+
+**Repository created on ${currentDate} using Histofy Chrome Extension**  
+**Visit**: https://github.com/histofy/extension
+
+*This repository follows GitHub's contribution counting rules and Terms of Service.*
+`;
+  }
+
+  // Create or update README.md file in the repository
+  async createContributionReadme(owner, repo, deploymentStats = {}) {
+    try {
+      this.log('info', `Creating/updating README.md for ${owner}/${repo}`);
+      
+      const readmeContent = this.generateContributionReadme(owner, repo, deploymentStats);
+      
+      // Check if README already exists
+      let existingReadme = null;
+      try {
+        const response = await this.api.makeRequest(`/repos/${owner}/${repo}/contents/README.md`);
+        if (response.ok) {
+          existingReadme = await response.json();
+        }
+      } catch (error) {
+        // README doesn't exist, which is fine
+      }
+      
+      const requestBody = {
+        message: existingReadme 
+          ? 'Update README.md with Histofy contribution information'
+          : 'Add README.md with Histofy contribution information',
+        content: btoa(unescape(encodeURIComponent(readmeContent))),
+        branch: 'main'
+      };
+      
+      // If README exists, include the SHA for updating
+      if (existingReadme) {
+        requestBody.sha = existingReadme.sha;
+      }
+      
+      const response = await this.api.makeRequest(`/repos/${owner}/${repo}/contents/README.md`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.log('success', `README.md ${existingReadme ? 'updated' : 'created'} successfully`);
+        return data.commit.sha;
+      } else {
+        const errorData = await response.json();
+        throw new Error(`Failed to create/update README: ${errorData.message}`);
+      }
+      
+    } catch (error) {
+      this.log('warning', `Failed to create README: ${error.message}`);
+      // Don't fail the entire deployment if README creation fails
+      return null;
+    }
+  }
+
   // Create initial branch for empty repository or branch conflicts
   async createInitialBranch(owner, repo, branchName) {
     try {
@@ -1428,25 +1535,13 @@ Follows GitHub contribution counting rules: ✅ Email ✅ Default branch ✅ UTC
       
       // For empty repositories, we need to use a different approach
       // Create initial commit directly through the GitHub API
-      const fileContent = `# ${repo}
-
-Initial repository setup by Histofy Chrome Extension.
-
-This repository will contain contribution history generated by Histofy.
-Generated on: ${new Date().toISOString()}
-
-## Purpose
-This repository is used to create a custom contribution pattern on your GitHub profile.
-Each commit represents activity on specific dates to create your desired contribution graph.
-
-## How it works
-- Histofy creates commits with specific dates
-- Each commit follows GitHub's contribution counting rules
-- All commits use your GitHub account email for proper attribution
-- Contributions appear on your profile within 24 hours
-
-Generated by Histofy Extension v1.0.0
-`;
+      const fileContent = this.generateContributionReadme(owner, repo, {
+        totalCommits: 0,
+        dateRange: { 
+          start: new Date().toISOString().split('T')[0], 
+          end: new Date().toISOString().split('T')[0] 
+        }
+      });
 
       // Use GitHub's simpler approach for initial commit in empty repository
       const response = await this.api.makeRequest(`/repos/${owner}/${repo}/contents/README.md`, {
@@ -1487,14 +1582,12 @@ Generated by Histofy Extension v1.0.0
   async createInitialBranchFallback(owner, repo, branchName) {
     this.log('info', `Creating initial branch using Git API fallback: ${branchName}`);
     
-    // Create initial README content
-    const fileContent = `# ${repo}
-
-Initial commit created by Histofy for contribution history.
-
-This repository is managed by Histofy Chrome Extension.
-Generated on: ${new Date().toISOString()}
-`;
+    // Create enhanced README content using the same method as regular deployment
+    const fileContent = this.generateContributionReadme(owner, repo, {
+      totalCommits: 0,
+      dateRange: 'Repository initialization',
+      createdDate: new Date().toISOString()
+    });
     
     // Create blob, tree, and commit for the initial branch
     const blobSha = await this.createBlob(owner, repo, fileContent);

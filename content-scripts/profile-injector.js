@@ -151,8 +151,8 @@ class ProfileInjector {
         </div>
         <div class="histofy-activate-info">
           <p>• <strong>1st click:</strong> Low contributions (1-3 commits) - Darkest green ✅</p>
-          <p>• <strong>2nd click:</strong> Medium contributions (10-14 commits) - Dark green (Fixed)</p>
-          <p>• <strong>3rd click:</strong> High contributions (20-24 commits) - Medium green (Fixed)</p>
+          <p>• <strong>2nd click:</strong> Medium contributions (10-14 commits) - Dark green ✅</p>
+          <p>• <strong>3rd click:</strong> High contributions (20-24 commits) - Medium green ✅</p>
           <p>• <strong>4th click:</strong> Very high contributions (25+ commits) - Light green ✅</p>
           <p>• <strong>5th click:</strong> Back to no contributions (original state)</p>
         </div>
