@@ -27,7 +27,6 @@ class LocalStorageManager {
 
   async init() {
     await this.ensureDataStructure();
-    console.log('Histofy: Local storage manager initialized');
   }
 
   async ensureDataStructure() {
@@ -53,7 +52,7 @@ class LocalStorageManager {
         await this.saveData(defaultData);
       }
     } catch (error) {
-      console.error('Histofy: Failed to ensure data structure:', error);
+      console.error('Failed to ensure data structure:', error);
     }
   }
 
@@ -62,7 +61,7 @@ class LocalStorageManager {
       const result = await chrome.storage.local.get(this.storageKey);
       return result[this.storageKey] || null;
     } catch (error) {
-      console.error('Histofy: Failed to get data:', error);
+      console.error('Failed to get data:', error);
       return null;
     }
   }
@@ -72,7 +71,7 @@ class LocalStorageManager {
       await chrome.storage.local.set({ [this.storageKey]: data });
       return true;
     } catch (error) {
-      console.error('Histofy: Failed to save data:', error);
+      console.error('Failed to save data:', error);
       return false;
     }
   }
@@ -309,7 +308,7 @@ class LocalStorageManager {
       const data = await this.getData();
       return data?.userSettings || {};
     } catch (error) {
-      console.error('Histofy: Failed to get user settings:', error);
+      console.error('Failed to get user settings:', error);
       return {};
     }
   }
@@ -326,7 +325,7 @@ class LocalStorageManager {
       await this.saveData(data);
       return true;
     } catch (error) {
-      console.error('Histofy: Failed to update user settings:', error);
+      console.error('Failed to update user settings:', error);
       return false;
     }
   }
@@ -342,7 +341,7 @@ class LocalStorageManager {
         lastActivity: null
       };
     } catch (error) {
-      console.error('Histofy: Failed to get statistics:', error);
+      console.error('Failed to get statistics:', error);
       return {
         totalModifications: 0,
         successfulDeployments: 0,
@@ -364,7 +363,7 @@ class LocalStorageManager {
       await this.saveData(data);
       return true;
     } catch (error) {
-      console.error('Histofy: Failed to update statistics:', error);
+      console.error('Failed to update statistics:', error);
       return false;
     }
   }
@@ -383,7 +382,7 @@ class LocalStorageManager {
         failedDeployments: statistics.failedDeployments || 0
       };
     } catch (error) {
-      console.error('Histofy: Failed to get storage stats:', error);
+      console.error('Failed to get storage stats:', error);
       return {
         pendingChanges: 0,
         totalModifications: 0,
@@ -447,7 +446,7 @@ class LocalStorageManager {
       };
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
-      console.error('Histofy: Failed to export data:', error);
+      console.error('Failed to export data:', error);
       return null;
     }
   }
@@ -462,10 +461,9 @@ class LocalStorageManager {
       }
 
       await this.saveData(parsedData);
-      console.log('Histofy: Data imported successfully');
       return true;
     } catch (error) {
-      console.error('Histofy: Failed to import data:', error);
+      console.error('Failed to import data:', error);
       return false;
     }
   }

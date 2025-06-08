@@ -10,7 +10,7 @@ class CommitTimelineEditor {
 
   // Reserved for future implementation
   init() {
-    console.log('Histofy: Commit timeline editor ready (not implemented)');
+    // Future implementation
   }
 
   // Placeholder methods for future development

@@ -8,7 +8,6 @@ class HistofyBackground {
   }
 
   async init() {
-    console.log('Histofy: Background service worker initialized');
     this.setupEventListeners();
     await this.initializeStorage();
   }
@@ -38,11 +37,11 @@ class HistofyBackground {
 
   async handleInstallation(details) {
     if (details.reason === 'install') {
-      console.log('Histofy: Extension installed for the first time');
+      // Extension installed
       await this.initializeDefaultSettings();
       this.showWelcomeNotification();
     } else if (details.reason === 'update') {
-      console.log('Histofy: Extension updated to version', chrome.runtime.getManifest().version);
+      // Extension updated
       await this.handleVersionMigration(details.previousVersion);
     }
   }
@@ -54,7 +53,7 @@ class HistofyBackground {
         await this.initializeDefaultSettings();
       }
     } catch (error) {
-      console.error('Histofy: Error initializing storage:', error);
+      console.error('Error initializing storage:', error);
     }
   }
 
@@ -89,7 +88,6 @@ class HistofyBackground {
     };
 
     await chrome.storage.local.set({ histofy_data: defaultData });
-    console.log('Histofy: Default settings initialized');
   }
 
   async handleMessage(message, sender, sendResponse) {
@@ -146,11 +144,11 @@ class HistofyBackground {
           break;
 
         default:
-          console.warn('Histofy: Unknown message type:', message.type);
+          console.warn('Unknown message type:', message.type);
           sendResponse({ success: false, error: 'Unknown message type' });
       }
     } catch (error) {
-      console.error('Histofy: Error handling message:', error);
+      console.error('Error handling message:', error);
       sendResponse({ success: false, error: error.message });
     }
   }
@@ -166,7 +164,7 @@ class HistofyBackground {
 
       return response.ok;
     } catch (error) {
-      console.error('Histofy: Error validating GitHub token:', error);
+      console.error('Error validating GitHub token:', error);
       return false;
     }
   }
@@ -192,7 +190,7 @@ class HistofyBackground {
         };
       }
     } catch (error) {
-      console.error('Histofy: Error getting GitHub user info:', error);
+      console.error('Error getting GitHub user info:', error);
     }
 
     return null;
@@ -224,7 +222,7 @@ class HistofyBackground {
         user
       };
     } catch (error) {
-      console.error('Histofy: Error getting API status:', error);
+      console.error('Error getting API status:', error);
       return {
         status: 'error',
         authenticated: false,
@@ -250,7 +248,7 @@ class HistofyBackground {
         failed: failedCount
       };
     } catch (error) {
-      console.error('Histofy: Error getting stats:', error);
+      console.error('Error getting stats:', error);
       return { pending: 0, completed: 0, failed: 0 };
     }
   }
@@ -271,7 +269,7 @@ class HistofyBackground {
       }
       return false;
     } catch (error) {
-      console.error('Histofy: Error clearing pending changes:', error);
+      console.error('Error clearing pending changes:', error);
       return false;
     }
   }
@@ -298,7 +296,7 @@ class HistofyBackground {
 
       return { success: true, user };
     } catch (error) {
-      console.error('Histofy: Error authenticating user:', error);
+      console.error('Error authenticating user:', error);
       return { success: false, error: error.message };
     }
   }
@@ -313,7 +311,7 @@ class HistofyBackground {
       }
       return { success: true };
     } catch (error) {
-      console.error('Histofy: Error logging out user:', error);
+      console.error('Error logging out user:', error);
       return { success: false, error: error.message };
     }
   }
@@ -328,7 +326,7 @@ class HistofyBackground {
       }
       return false;
     } catch (error) {
-      console.error('Histofy: Error updating setting:', error);
+      console.error('Error updating setting:', error);
       return false;
     }
   }
@@ -365,16 +363,14 @@ class HistofyBackground {
         });
       });
     } catch (error) {
-      console.error('Histofy: Error broadcasting to tabs:', error);
+      console.error('Error broadcasting to tabs:', error);
     }
   }
 
   showWelcomeNotification() {
-    console.log('Histofy: Welcome! Extension is ready to use on GitHub.');
   }
 
   async handleVersionMigration(previousVersion) {
-    console.log(`Histofy: Migrating from version ${previousVersion}`);
   }
 }
 

@@ -9,8 +9,6 @@ class ProfileInjector {
 
   // Enhanced initialization with retry logic
   async init() {
-    console.log('Histofy: Profile injector initializing...');
-    
     // Wait for page to be ready
     if (document.readyState === 'loading') {
       await new Promise(resolve => {
@@ -26,12 +24,10 @@ class ProfileInjector {
       await new Promise(resolve => setTimeout(resolve, 1000 + (attempts * 500)));
       
       if (this.hasContributionGraph()) {
-        console.log(`Histofy: Contribution graph detected on attempt ${attempts + 1}`);
         break;
       }
       
       attempts++;
-      console.log(`Histofy: Waiting for contribution graph... attempt ${attempts}/${maxAttempts}`);
     }
 
     this.setupMutationObserver();
@@ -41,8 +37,6 @@ class ProfileInjector {
     document.dispatchEvent(new CustomEvent('histofy-profile-ready', {
       detail: { hasContributionGraph: this.hasContributionGraph() }
     }));
-    
-    console.log('Histofy: Profile injector initialized');
   }
 
   setupMutationObserver() {
@@ -69,7 +63,6 @@ class ProfileInjector {
       });
       
       if (shouldReinject) {
-        console.log('Histofy: Contribution area changed, re-injecting UI');
         setTimeout(() => this.injectUI(), 500);
       }
     });
@@ -85,22 +78,19 @@ class ProfileInjector {
     try {
       // Only inject on profile pages with contribution graphs
       if (!this.isProfilePage() || !this.hasContributionGraph()) {
-        console.log('Histofy: Not a valid profile page for injection');
         return;
       }
 
       // Prevent duplicate injection
       if (document.querySelector('.histofy-activate-section')) {
-        console.log('Histofy: UI already injected, skipping');
         return;
       }
 
       this.createActivateButton();
       this.isInjected = true;
-      console.log('Histofy: UI injected successfully');
       
     } catch (error) {
-      console.error('Histofy: Failed to inject UI:', error);
+      console.error('Failed to inject UI:', error);
     }
   }
 
@@ -131,7 +121,6 @@ class ProfileInjector {
     // Find the best place to inject the button
     const contributionSection = this.findContributionSection();
     if (!contributionSection) {
-      console.log('Histofy: Could not find contribution section');
       return;
     }
 
@@ -191,7 +180,6 @@ class ProfileInjector {
     for (const selector of selectors) {
       const section = document.querySelector(selector);
       if (section) {
-        console.log(`Histofy: Found contribution section using selector: ${selector}`);
         return section;
       }
     }
@@ -220,7 +208,6 @@ class ProfileInjector {
       }
     });
 
-    console.log(`Histofy: Current year detected as ${this.currentYear}`);
   }
 
   setupActivateButton() {
@@ -237,15 +224,13 @@ class ProfileInjector {
       e.stopPropagation();
       e.stopImmediatePropagation();
       
-      console.log('Histofy: Activate button event triggered');
       this.handleActivateClick();
     }, { capture: true, once: false });
 
-    console.log('Histofy: Activate button event listener attached');
   }
 
   handleActivateClick() {
-    console.log('Histofy: Activate button clicked');
+    console.log('Activate button clicked');
 
     // Check if already active - if so, deactivate
     if (window.histofyOverlay && window.histofyOverlay.isActive) {
@@ -270,7 +255,7 @@ class ProfileInjector {
 
         // Step 2: Check if overlay is available
         if (!window.histofyOverlay) {
-          console.error('Histofy: Overlay not available, attempting to reinitialize...');
+          console.error('Overlay not available, attempting to reinitialize...');
           
           // Try to reinitialize the overlay
           if (window.ContributionGraphOverlay) {
@@ -294,7 +279,6 @@ class ProfileInjector {
         }
 
         // Step 5: Attempt activation
-        console.log('Histofy: Starting activation process...');
         const success = await window.histofyOverlay.activate();
         
         if (success) {
@@ -304,13 +288,12 @@ class ProfileInjector {
           // Start monitoring for deactivation
           this.startDeactivationMonitoring();
           
-          console.log('Histofy: Activation successful');
         } else {
           throw new Error('Overlay activation returned false');
         }
 
       } catch (error) {
-        console.error('Histofy: Activation failed:', error);
+        console.error('Activation failed:', error);
         this.showNotification(`Activation failed: ${error.message}`, 'error');
         this.updateActivateButton(false);
         
@@ -321,7 +304,6 @@ class ProfileInjector {
   }
 
   handleDeactivateClick() {
-    console.log('Histofy: Deactivate button clicked');
     
     if (window.histofyOverlay && window.histofyOverlay.isActive) {
       window.histofyOverlay.deactivate();
@@ -354,7 +336,7 @@ class ProfileInjector {
   }
 
   async handleStoreChanges() {
-    console.log('Histofy: Store Changes button clicked');
+    console.log('Store Changes button clicked');
     
     if (!window.histofyOverlay || !window.histofyOverlay.isActive) {
       this.showNotification('Histofy is not active', 'warning');
@@ -365,18 +347,18 @@ class ProfileInjector {
     const contributions = window.histofyOverlay.getContributions();
     const selectedCount = Object.keys(contributions).length;
     
-    console.log('Histofy: Store Changes - Current contributions:', contributions);
-    console.log('Histofy: Store Changes - Selected count:', selectedCount);
+    console.log('Store Changes - Current contributions:', contributions);
+    console.log('Store Changes - Selected count:', selectedCount);
     
     if (selectedCount === 0) {
-      console.log('Histofy: No contributions found, attempting to reload...');
+      console.log('No contributions found, attempting to reload...');
       
       // Try to reload contributions first
       if (window.histofyOverlay.loadContributions) {
         await window.histofyOverlay.loadContributions();
         const reloadedContributions = window.histofyOverlay.getContributions();
         const reloadedCount = Object.keys(reloadedContributions).length;
-        console.log('Histofy: After reload - contributions count:', reloadedCount);
+        console.log('After reload - contributions count:', reloadedCount);
         
         if (reloadedCount > 0) {
           // Now we have contributions, continue with storing
@@ -395,7 +377,7 @@ class ProfileInjector {
       // Still no contributions - check for visual modifications
       const modifiedTiles = document.querySelectorAll('[data-histofy-title], [title*="Modified by Histofy"]');
       if (modifiedTiles.length > 0) {
-        console.log(`Histofy: Found ${modifiedTiles.length} visually modified tiles, forcing rebuild...`);
+        console.log(`Found ${modifiedTiles.length} visually modified tiles, forcing rebuild...`);
         this.showNotification('Detected modified tiles, rebuilding data...', 'info');
         
         if (window.histofyOverlay.forceStorePendingChanges) {
@@ -427,7 +409,7 @@ class ProfileInjector {
   }
 
   handleClearAll() {
-    console.log('Histofy: Clear All button clicked');
+    console.log('Clear All button clicked');
     
     if (!window.histofyOverlay || !window.histofyOverlay.isActive) {
       this.showNotification('Histofy is not active', 'warning');
@@ -453,7 +435,7 @@ class ProfileInjector {
     const isProfile = this.isProfilePage();
     const hasContributions = this.hasContributionGraph();
     
-    console.log('Histofy: Page validation:', {
+    console.log('Page validation:', {
       url,
       isGitHub,
       isProfile,
@@ -475,12 +457,12 @@ class ProfileInjector {
       const element = document.querySelector(selector);
       if (element) {
         const tiles = element.querySelectorAll('[data-date]');
-        console.log(`Histofy: Found contribution graph with ${tiles.length} tiles using selector: ${selector}`);
+        console.log(`Found contribution graph with ${tiles.length} tiles using selector: ${selector}`);
         return tiles.length > 0;
       }
     }
 
-    console.log('Histofy: No valid contribution graph found');
+    console.log('No valid contribution graph found');
     return false;
   }
 
@@ -508,7 +490,7 @@ class ProfileInjector {
     // Monitor overlay state every 500ms
     this.deactivationTimer = setInterval(() => {
       if (window.histofyOverlay && !window.histofyOverlay.isActive) {
-        console.log('Histofy: Overlay deactivated, updating button');
+        console.log('Overlay deactivated, updating button');
         this.updateActivateButton(false);
         clearInterval(this.deactivationTimer);
         this.deactivationTimer = null;

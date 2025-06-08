@@ -1384,7 +1384,9 @@ Visit: https://github.com/histofy/extension
     };
     
     this.deploymentStatus.logs.push(logEntry);
-    console.log(`Histofy Deployer [${level.toUpperCase()}]:`, message);
+    if (level === 'error') {
+      console.error('Deployer:', message);
+    }
   }
 
   getDeploymentStatus() {

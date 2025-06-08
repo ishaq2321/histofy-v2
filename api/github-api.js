@@ -31,12 +31,7 @@ class GitHubAPI {
       }
       
       const result = await chrome.storage.local.get(['histofy_github_token', 'histofy_github_user']);
-      this.token = result.histofy_github_token || null;
-      this.user = result.histofy_github_user || null;
-      
-      if (this.token) {
-        console.log('Histofy: GitHub token loaded from storage');
-      }
+      this.token = result.histofy_github_token || null;        this.user = result.histofy_github_user || null;
     } catch (error) {
       if (error.message.includes('Extension context invalidated')) {
         console.warn('Histofy: Extension context invalidated, cannot load credentials');
@@ -59,7 +54,6 @@ class GitHubAPI {
       });
       this.token = token;
       this.user = user;
-      console.log('Histofy: GitHub credentials saved');
       return true;
     } catch (error) {
       if (error.message.includes('Extension context invalidated')) {

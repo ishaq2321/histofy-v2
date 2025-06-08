@@ -1216,7 +1216,9 @@ class DeployButton {
   }
 
   log(level, message) {
-    console.log(`Histofy Deploy [${level.toUpperCase()}]:`, message);
+    if (level === 'error') {
+      console.error('Deploy:', message);
+    }
   }
 
   showNotification(message, type = 'info') {

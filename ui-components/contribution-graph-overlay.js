@@ -1,59 +1,46 @@
-// Contribution graph overlay for Histofy
 class ContributionGraphOverlay {
   constructor() {
     this.isActive = false;
-    this.contributions = {}; // Store selected contributions by date
-    this.originalColors = {}; // Store original tile colors
+    this.contributions = {};
+    this.originalColors = {};
     this.currentYear = new Date().getFullYear();
     this.username = null;
     this.debugMode = false;
-    this.tileEventHandlers = new Map(); // Store event handlers for cleanup
-    this.protectionHandler = null; // Store protection handler for cleanup
+    this.tileEventHandlers = new Map();
+    this.protectionHandler = null;
     
-    // CORRECTED GitHub contribution levels - based on REAL deployment testing
-    // Real testing showed: 2=Low✅, 6=Low❌, 13=Medium❌, 22=VeryHigh✅
-    // Fixed ranges: Medium(10-14), High(20-24) to ensure proper intensity mapping
     this.contributionLevels = {
-      0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },              // Light gray - no contributions
-      1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },             // DARKEST green - low activity ✅ Working correctly
-      2: { level: 2, name: 'Medium', color: '#30a14e', commits: '10-14' },        // DARK green - medium activity (CORRECTED from 4-9)
-      3: { level: 3, name: 'High', color: '#40c463', commits: '20-24' },          // MEDIUM green - high activity (CORRECTED from 10-19)
-      4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '25+' }        // LIGHTEST green - very high activity (ADJUSTED from 20+)
+      0: { level: 0, name: 'None', color: '#ebedf0', commits: '0' },
+      1: { level: 1, name: 'Low', color: '#216e39', commits: '1-3' },
+      2: { level: 2, name: 'Medium', color: '#30a14e', commits: '10-14' },
+      3: { level: 3, name: 'High', color: '#40c463', commits: '20-24' },
+      4: { level: 4, name: 'Very High', color: '#9be9a8', commits: '25+' }
     };
     this.init();
   }
 
   async init() {
-    console.log('Histofy: Contribution graph overlay initializing...');
-    
-    // Wait for page to be ready
     if (document.readyState === 'loading') {
       await new Promise(resolve => {
         document.addEventListener('DOMContentLoaded', resolve);
       });
     }
 
-    // Additional wait for GitHub's dynamic content
     await new Promise(resolve => setTimeout(resolve, 2000));
-
     this.setupEventListeners();
-    console.log('Histofy: Contribution graph overlay initialized');
   }
 
   setupEventListeners() {
-    // Listen for page changes (GitHub SPA navigation)
     document.addEventListener('histofy-page-change', () => {
       this.handlePageChange();
     });
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isActive) {
         this.clearAllSelections();
       }
     });
 
-    // Listen for storage changes
     window.addEventListener('storage', (e) => {
       if (e.key === 'histofy_data') {
         this.loadContributions();
@@ -62,86 +49,52 @@ class ContributionGraphOverlay {
   }
 
   handlePageChange() {
-    console.log('Histofy: Page change detected, reinitializing overlay');
     this.deactivate();
     setTimeout(() => {
       this.init();
     }, 1000);
   }
 
-  // Enhanced activation with better initialization and error handling
   async activate() {
-    console.log('Histofy: Starting activation process...');
-
     if (this.isActive) {
-      console.log('Histofy: Overlay already active');
       return true;
     }
 
     try {
-      // Step 1: Find contribution graph
       const contributionGraph = this.findContributionGraph();
       if (!contributionGraph) {
-        console.error('Histofy: Could not find contribution graph element');
         return false;
       }
-      console.log('Histofy: Found contribution graph:', contributionGraph);
 
-      // Step 2: Find contribution tiles
       const tiles = document.querySelectorAll('[data-date]');
       if (tiles.length === 0) {
-        console.error('Histofy: No contribution tiles found');
         return false;
       }
-      console.log(`Histofy: Found ${tiles.length} contribution tiles`);
 
-      // Step 3: Extract user information
       this.extractUserInfo();
       if (!this.username) {
-        console.warn('Histofy: Could not extract username, using fallback');
         this.username = 'unknown-user';
       }
-      console.log(`Histofy: User: ${this.username}, Year: ${this.currentYear}`);
 
-      // Step 4: Initialize event handlers map if not exists
       if (!this.tileEventHandlers) {
         this.tileEventHandlers = new Map();
       }
 
-      // Step 5: Mark as active EARLY to prevent interference
       this.isActive = true;
-      console.log('Histofy: Marked as active');
-      
-      // Step 6: Set up tile interactions
       this.setupContributionTiles();
-      console.log('Histofy: Tile handlers set up');
-      
-      // Step 7: Skip instruction panel creation for cleaner UI
-      
-      // Step 8: Load existing contributions immediately
       await this.loadContributions();
-      console.log('Histofy: Existing contributions loaded');
-      
-      // Step 9: Set up protection against deactivation
       this.setupDeactivationProtection();
-      console.log('Histofy: Deactivation protection enabled');
       
-      console.log('Histofy: Activation completed successfully');
       return true;
-
     } catch (error) {
-      console.error('Histofy: Activation failed with error:', error);
+      console.error('Histofy activation failed:', error);
       this.isActive = false;
-      
-      // Clean up any partial setup
       this.removeContributionHandlers();
       this.removeInstructionPanel();
-      
       return false;
     }
   }
 
-  // Core contribution tile functionality
   findContributionGraph() {
     const selectors = [
       '.ContributionCalendar-grid',
@@ -153,25 +106,12 @@ class ContributionGraphOverlay {
     for (const selector of selectors) {
       const element = document.querySelector(selector);
       if (element) {
-        console.log(`Histofy: Found contribution graph using selector: ${selector}`);
-        
-        // Verify it has contribution tiles
         const tiles = element.querySelectorAll('[data-date]');
         if (tiles.length > 0) {
-          console.log(`Histofy: Verified ${tiles.length} tiles in contribution graph`);
           return element;
-        } else {
-          console.log(`Histofy: Element found but no tiles: ${selector}`);
         }
       }
     }
-
-    // Debug: Log all possible elements
-    console.log('Histofy: Available elements for debugging:');
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      console.log(`  ${selector}: ${elements.length} elements`);
-    });
 
     return null;
   }

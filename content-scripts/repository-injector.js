@@ -8,7 +8,7 @@ class RepositoryInjector {
 
   init() {
     this.setupEventListeners();
-    console.log('Histofy: Repository injector initialized');
+    console.log('Repository injector initialized');
   }
 
   setupEventListeners() {
@@ -25,14 +25,14 @@ class RepositoryInjector {
 
   injectRepositoryControls() {
     if (this.isInjected) {
-      console.log('Histofy: Repository controls already injected');
+      console.log('Repository controls already injected');
       return;
     }
 
     // Repository tools panel removed
     this.isInjected = true;
 
-    console.log('Histofy: Repository controls injection skipped (tools removed)');
+    console.log('Repository controls injection skipped (tools removed)');
   }
 
   findRepositoryHeader() {

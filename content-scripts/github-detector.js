@@ -8,11 +8,9 @@ class GitHubDetector {
   }
 
   init() {
-    console.log('Histofy: GitHub detector initializing...');
     this.detectCurrentPage();
     this.setupNavigationListener();
     this.setupMessageListener();
-    console.log('Histofy: GitHub detector initialized');
   }
 
   setupMessageListener() {
@@ -48,7 +46,7 @@ class GitHubDetector {
         }
       });
     } catch (error) {
-      console.error('Histofy: Failed to setup message listener:', error);
+      console.error('Failed to setup message listener:', error);
     }
   }
 
@@ -83,7 +81,7 @@ class GitHubDetector {
         window.histofyDeployButton.handleStorageUpdate(changes);
       }
     } catch (error) {
-      console.error('Histofy: Error handling storage update:', error);
+      console.error('Error handling storage update:', error);
     }
   }
 
@@ -100,7 +98,7 @@ class GitHubDetector {
         window.histofyDeployButton.updatePendingCount();
       }
     } catch (error) {
-      console.error('Histofy: Error handling pending changes cleared:', error);
+      console.error('Error handling pending changes cleared:', error);
     }
   }
 
@@ -169,7 +167,6 @@ class GitHubDetector {
     }
 
     this.currentPage = pageInfo;
-    console.log('Histofy: Detected page info:', pageInfo);
     
     return pageInfo;
   }
@@ -250,12 +247,11 @@ class GitHubDetector {
       });
       
       document.dispatchEvent(event);
-      console.log(`Histofy: Detected ${this.currentPage} page`, {
         username: this.username,
         repository: this.repository
       });
     } catch (error) {
-      console.error('Histofy: Error notifying page change:', error);
+      console.error('Error notifying page change:', error);
     }
   }
 
@@ -265,7 +261,6 @@ class GitHubDetector {
       detail: this.currentPage
     }));
 
-    console.log('Histofy: Broadcasted page change:', this.currentPage);
   }
 
   getCurrentPageInfo() {

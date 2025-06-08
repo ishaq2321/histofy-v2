@@ -13,7 +13,6 @@ class HistofyPopup {
   }
 
   async init() {
-    console.log('Histofy: Popup initialized');
     await this.initializeAPI();
     await this.loadCurrentPageInfo();
     await this.loadStats();
@@ -30,7 +29,6 @@ class HistofyPopup {
       this.authStatus = response?.authenticated || false;
       this.userInfo = response?.user || null;
     } catch (error) {
-      console.error('Histofy: Failed to initialize popup API:', error);
       this.apiStatus = 'error';
     }
   }
@@ -48,7 +46,6 @@ class HistofyPopup {
         this.currentPageInfo = null;
       }
     } catch (error) {
-      console.error('Histofy: Failed to load page info:', error);
       this.currentPageInfo = null;
     }
   }
