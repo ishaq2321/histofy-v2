@@ -1065,12 +1065,23 @@ class DeployButton {
     linkNotification.className = 'histofy-notification histofy-notification-success histofy-repo-link';
     linkNotification.innerHTML = `
       <div>Deployment completed!</div>
-      <button onclick="window.open('${repoUrl}', '_blank')" class="histofy-repo-link-btn">
+      <button class="histofy-repo-link-btn" data-repo-url="${repoUrl}">
         🔗 View Repository
       </button>
     `;
     
     document.body.appendChild(linkNotification);
+    
+    // Add click handler for repository link button
+    const linkButton = linkNotification.querySelector('.histofy-repo-link-btn');
+    if (linkButton) {
+      linkButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Histofy: Opening repository URL:', repoUrl);
+        window.open(repoUrl, '_blank', 'noopener,noreferrer');
+      });
+    }
     
     setTimeout(() => {
       linkNotification.remove();
@@ -1083,7 +1094,7 @@ class DeployButton {
     successNotification.className = 'histofy-notification histofy-notification-success histofy-deployment-success';
     
     const buttonHtml = repoUrl 
-      ? `<button onclick="window.open('${repoUrl}', '_blank')" class="histofy-repo-link-btn">🔗 View Repository</button>`
+      ? `<button class="histofy-repo-link-btn" data-repo-url="${repoUrl}">🔗 View Repository</button>`
       : '';
     
     successNotification.innerHTML = `
@@ -1096,6 +1107,19 @@ class DeployButton {
     `;
     
     document.body.appendChild(successNotification);
+    
+    // Add click handler for repository link button
+    if (repoUrl) {
+      const linkButton = successNotification.querySelector('.histofy-repo-link-btn');
+      if (linkButton) {
+        linkButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Histofy: Opening repository URL:', repoUrl);
+          window.open(repoUrl, '_blank', 'noopener,noreferrer');
+        });
+      }
+    }
     
     setTimeout(() => {
       successNotification.remove();

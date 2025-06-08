@@ -1014,6 +1014,52 @@ body[data-color-mode="light"] .histofy-deploy-button {
   color: white;
 }
 
+/* Deployment Success Notification */
+.histofy-deployment-success {
+  max-width: 400px !important;
+  padding: 16px 20px !important;
+}
+
+.histofy-success-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.histofy-success-message {
+  line-height: 1.4 !important;
+  margin: 0 !important;
+}
+
+/* Repository Link Button */
+.histofy-repo-link-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-decoration: none !important;
+  margin-top: 4px !important;
+}
+
+.histofy-repo-link-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.histofy-repo-link-btn:active {
+  transform: translateY(0) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(100%);
