@@ -213,10 +213,6 @@ For issues, feature requests, or questions:
 
 ---
 
-**Histofy v2.0.0** - Visual GitHub contribution graph editor with real commit deployment.
-
-*⚠️ This tool creates real commits. Use responsibly and in accordance with GitHub's Terms of Service.*
-
 ## 🔗 Related Projects
 
 Explore the complete Histofy ecosystem:
@@ -224,3 +220,22 @@ Explore the complete Histofy ecosystem:
 - **v1**: [Contribution Visualization](https://github.com/ishaq2321/histofy-v1) - Journey mapping and mirroring  
 - **v3**: [CLI Commit Manager](https://github.com/ishaq2321/histofy-v3) - Backdated commits and project migration
 - **v4**: [VS Code Extension](https://github.com/ishaq2321/histofy-v4) - Date-aware development workflow
+
+## 💬 Community & Support
+
+- **🐛 [Report Issues](https://github.com/ishaq2321/histofy-v2/issues)** - Found a bug? Let us know!
+- **💡 [Feature Requests](https://github.com/ishaq2321/histofy-v2/issues/new?template=feature_request.md)** - Suggest new features
+- **💬 [Discussions](https://github.com/ishaq2321/histofy-v2/discussions)** - Ask questions and share ideas
+- **📖 [Wiki](https://github.com/ishaq2321/histofy-v2/wiki)** - Detailed documentation and guides
+- **🔄 [Pull Requests](https://github.com/ishaq2321/histofy-v2/pulls)** - Contribute to the project
+- **⭐ [Star the Project](https://github.com/ishaq2321/histofy-v2)** - Show your support!
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Histofy v2** - Visual GitHub contribution graph editor with real commit deployment.
+
+*⚠️ This tool creates real commits. Use responsibly and in accordance with GitHub's Terms of Service.*
