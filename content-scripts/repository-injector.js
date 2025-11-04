@@ -8,7 +8,6 @@ class RepositoryInjector {
 
   init() {
     this.setupEventListeners();
-    console.log('Repository injector initialized');
   }
 
   setupEventListeners() {
@@ -25,14 +24,11 @@ class RepositoryInjector {
 
   injectRepositoryControls() {
     if (this.isInjected) {
-      console.log('Repository controls already injected');
       return;
     }
 
     // Repository tools panel removed
     this.isInjected = true;
-
-    console.log('Repository controls injection skipped (tools removed)');
   }
 
   findRepositoryHeader() {
@@ -50,38 +46,6 @@ class RepositoryInjector {
 
     return null;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   cleanup() {
     // Remove injected elements when leaving repository page

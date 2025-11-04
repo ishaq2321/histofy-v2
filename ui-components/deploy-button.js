@@ -75,7 +75,6 @@ class DeployButton {
     } else {
       authSection.innerHTML = `
         <div class="histofy-auth-inputs">
-          <input type="text" placeholder="GitHub Username" id="histofy-username" class="histofy-input">
           <input type="password" placeholder="Personal Access Token" id="histofy-token" class="histofy-input">
           <button class="histofy-btn histofy-btn-secondary" id="histofy-save-auth">💾 Save Credentials</button>
         </div>
@@ -113,22 +112,21 @@ class DeployButton {
     }
 
     // Auto-save on enter key
-    const inputs = document.querySelectorAll('#histofy-username, #histofy-token');
-    inputs.forEach(input => {
-      input.addEventListener('keypress', async (e) => {
+    const tokenInput = document.querySelector('#histofy-token');
+    if (tokenInput) {
+      tokenInput.addEventListener('keypress', async (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           await this.handleAuthentication();
         }
       });
-    });
+    }
   }
 
   async handleAuthentication() {
-    const usernameInput = document.querySelector('#histofy-username');
     const tokenInput = document.querySelector('#histofy-token');
     
-    if (!usernameInput || !tokenInput) return;
+    if (!tokenInput) return;
 
     const token = tokenInput.value.trim();
     
@@ -152,7 +150,6 @@ class DeployButton {
           
           this.updateAuthenticationUI();
           this.showNotification('Authentication successful!', 'success');
-          usernameInput.value = '';
           tokenInput.value = '';
         } else {
           this.showNotification('Invalid token. Please check your credentials.', 'error');
@@ -227,7 +224,6 @@ class DeployButton {
         <div class="histofy-deploy-content">
           <div class="histofy-auth-section">
             <div class="histofy-auth-inputs">
-              <input type="text" placeholder="GitHub Username" id="histofy-username" class="histofy-input">
               <input type="password" placeholder="Personal Access Token" id="histofy-token" class="histofy-input">
               <button class="histofy-btn histofy-btn-secondary" id="histofy-save-auth">💾 Save Credentials</button>
             </div>
@@ -812,17 +808,15 @@ class DeployButton {
   }
 
   async saveCredentials() {
-    const username = document.querySelector('#histofy-username').value;
     const token = document.querySelector('#histofy-token').value;
 
-    if (!username || !token) {
-      this.showNotification('Please enter both username and token', 'error');
+    if (!token) {
+      this.showNotification('Please enter a GitHub token', 'error');
       return;
     }
 
     if (window.histofyStorage) {
       await window.histofyStorage.updateUserSettings({
-        username: username,
         token: token
       });
       this.showNotification('Credentials saved securely', 'success');
@@ -847,13 +841,6 @@ class DeployButton {
           }
         }
         
-        // Populate form fields for manual entry
-        const usernameInput = document.querySelector('#histofy-username');
-        const tokenInput = document.querySelector('#histofy-token');
-        
-        if (usernameInput && settings.username) {
-          usernameInput.value = settings.username;
-        }
         // Don't populate token field for security
       }
     } catch (error) {

@@ -102,7 +102,6 @@ histofy-v2/
 │   └── repository-injector.js       # Repository page features
 ├── ui-components/
 │   ├── contribution-graph-overlay.js # Visual editor
-│   ├── commit-timeline-editor.js     # Timeline manipulation
 │   └── deploy-button.js             # Deployment interface
 ├── storage/
 │   └── local-storage-manager.js     # Data persistence

@@ -2,7 +2,6 @@
 class HistofyPopup {
   constructor() {
     this.githubAPI = null;
-    this.gitOperations = null;
     this.currentPageInfo = null;
     this.stats = {
       pending: 0,

@@ -3,7 +3,6 @@
 class HistofyBackground {
   constructor() {
     this.githubAPI = null;
-    this.gitOperations = null;
     this.init();
   }
 

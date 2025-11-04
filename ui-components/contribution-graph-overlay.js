@@ -90,7 +90,6 @@ class ContributionGraphOverlay {
       console.error('Histofy activation failed:', error);
       this.isActive = false;
       this.removeContributionHandlers();
-      this.removeInstructionPanel();
       return false;
     }
   }
@@ -344,9 +343,7 @@ class ContributionGraphOverlay {
     this.removeDeactivationProtection();
     
     // Remove all event handlers
-    this.removeContributionHandlers();
-    
-    // Skip instruction panel removal as it's no longer created
+    this.removeContributionHandlers()
     
     // Reset any modified tiles to original state (but keep colors if user selected them)
     document.querySelectorAll('[data-histofy-active]').forEach(tile => {
@@ -392,9 +389,7 @@ class ContributionGraphOverlay {
     }
 
     // Update tile appearance immediately
-    this.updateTileAppearance(tile, date, nextLevel);
-    
-    // Skip instruction panel update as it's no longer used
+    this.updateTileAppearance(tile, date, nextLevel)
     
     // Save to storage (but don't add to pending changes automatically)
     this.saveContributions();
@@ -466,7 +461,6 @@ class ContributionGraphOverlay {
 
     // Clear contributions
     this.contributions = {};
-    // Skip instruction panel update as it's no longer used
     this.saveContributions();
 
     // Clear pending changes for this user/year and update deployment button
@@ -494,7 +488,7 @@ class ContributionGraphOverlay {
       
       await window.histofyStorage.saveData(data);
       
-      console.log(`Histofy: Removed ${removedCount} pending changes for ${this.username} (${this.currentYear})`);
+      console.log(`Histofy: Cleared ${removedCount} pending changes for ${this.username} (${this.currentYear})`);
       
       // Update deploy button immediately
       if (window.histofyDeployButton) {
@@ -672,8 +666,7 @@ class ContributionGraphOverlay {
 
       // Step 8: Add the new comprehensive change
       data.pendingChanges.push(change);
-      console.log(`Histofy: Manually stored pending changes for ${selectedDates.length} dates`);
-      console.log(`Histofy: Removed ${removedCount} existing changes, added 1 new change`);
+      console.log(`Histofy: Stored ${selectedDates.length} pending changes (removed ${removedCount} existing)`);
       console.log('Histofy: Selected dates:', selectedDates);
 
       await window.histofyStorage.saveData(data);
