@@ -1,8 +1,18 @@
-# 🎨 Histofy - GitHub History Modifier
+# 🎨 Histofy v2 - GitHub History Modifier
 
 **Transform your GitHub contribution history with precision and deploy real commits to match your vision!**
 
-Histofy is a powerful Chrome extension that allows you to modify your GitHub contribution graph visually and deploy actual commits to create your desired contribution pattern. Perfect for learning about GitHub's contribution system, creating visual patterns, or demonstrating git workflows.
+Histofy v2 is a powerful Chrome extension that allows you to modify your GitHub contribution graph visually and deploy actual commits to create your desired contribution pattern. Perfect for learning about GitHub's contribution system, creating visual patterns, or demonstrating git workflows.
+
+## 🌟 The Histofy Ecosystem
+
+Histofy is a comprehensive suite of tools for GitHub contribution management:
+
+- **[Histofy v0](https://github.com/ishaq2321/histofy-v0)** - *"Who am I?"* - GitHub account review and analysis (lines of code, files, languages, etc.)
+- **[Histofy v1](https://github.com/ishaq2321/histofy-v1)** - *"What does my journey look like?"* - Account mirroring and contribution visualization
+- **[Histofy v2](https://github.com/ishaq2321/histofy-v2)** - *"How do I want to appear?"* - **This extension** - Visual contribution graph editor
+- **[Histofy v3](https://github.com/ishaq2321/histofy-v3)** - *"How do I define my past?"* - CLI tool for real-time project committing with backdated commits and migration
+- **[Histofy v4](https://github.com/ishaq2321/histofy-v4)** - *"How do I grow from here?"* - VS Code extension with date-aware git operations
 
 ## ✨ Features
 
@@ -35,7 +45,7 @@ Based on extensive testing and GitHub's contribution intensity system:
 
 1. **Download the Extension**
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/ishaq2321/histofy-v2.git
    cd histofy-v2
    ```
 
@@ -203,6 +213,14 @@ For issues, feature requests, or questions:
 
 ---
 
-**Histofy v1.0.0** - Educational tool for understanding GitHub contributions through visual editing and real commit deployment.
+**Histofy v2.0.0** - Visual GitHub contribution graph editor with real commit deployment.
 
 *⚠️ This tool creates real commits. Use responsibly and in accordance with GitHub's Terms of Service.*
+
+## 🔗 Related Projects
+
+Explore the complete Histofy ecosystem:
+- **v0**: [GitHub Account Analytics](https://github.com/ishaq2321/histofy-v0) - Comprehensive account analysis
+- **v1**: [Contribution Visualization](https://github.com/ishaq2321/histofy-v1) - Journey mapping and mirroring  
+- **v3**: [CLI Commit Manager](https://github.com/ishaq2321/histofy-v3) - Backdated commits and project migration
+- **v4**: [VS Code Extension](https://github.com/ishaq2321/histofy-v4) - Date-aware development workflow
