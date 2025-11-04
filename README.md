@@ -200,10 +200,6 @@ This extension creates real commits that follow GitHub's contribution counting r
 - Verify commits appear in the target repository
 - Check that commits use your GitHub account email
 
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
 ## 🆘 Support
 
 For issues, feature requests, or questions:
